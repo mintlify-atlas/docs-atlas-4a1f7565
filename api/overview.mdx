@@ -1,0 +1,109 @@
+---
+title: "API overview"
+description: "Introduction to the Seerr REST API, authentication methods, and common conventions."
+---
+
+The Seerr API is a REST API that returns JSON. You can use it to build integrations, automate requests, and interact with your Seerr instance programmatically.
+
+**Base URL:** `http://localhost:5055/api/v1`
+
+<Note>
+  Replace `http://localhost:5055` with the externally accessible URL of your Seerr instance when making requests from outside the host.
+</Note>
+
+## Authentication
+
+The API supports two authentication methods. Every request must use one of them.
+
+| Method | How it works |
+|--------|-------------|
+| **API key** | Pass your API key in the `X-Api-Key` request header. |
+| **Session cookie** | Sign in via `/auth/local`, `/auth/plex`, or `/auth/jellyfin` to receive a `connect.sid` session cookie. |
+
+See the [Authentication](/api/authentication) page for full details on signing in and obtaining an API key.
+
+## Getting your API key
+
+Your API key is found in **Settings → General** in the Seerr UI.
+
+<Steps>
+  <Step title="Open Settings">
+    Navigate to **Settings → General** in the Seerr UI.
+  </Step>
+  <Step title="Copy your API key">
+    Your API key appears in the **API Key** field. Copy it to use in your requests.
+  </Step>
+  <Step title="Regenerate if needed">
+    Click the regenerate button next to the API key field to generate a new key. Any existing integrations using the old key will need to be updated.
+  </Step>
+</Steps>
+
+<Warning>
+  Do not share your API key publicly. It grants administrator-level access to your Seerr instance.
+</Warning>
+
+You can also set the API key directly using the `API_KEY` environment variable when starting Seerr.
+
+## Interactive API docs
+
+Seerr ships with a Swagger UI at:
+
+```
+http://localhost:5055/api-docs
+```
+
+You can use it to explore and test endpoints directly from your browser.
+
+## Response format
+
+All responses are JSON. Successful responses return the requested data. Error responses return a JSON object with a `message` field.
+
+```json
+{
+  "message": "You do not have permission to perform this action."
+}
+```
+
+Paginated list endpoints return results wrapped in a standard envelope:
+
+```json
+{
+  "pageInfo": {
+    "page": 1,
+    "pages": 10,
+    "results": 100
+  },
+  "results": [...]
+}
+```
+
+## Common HTTP status codes
+
+| Code | Meaning |
+|------|---------|
+| `200` | OK — request succeeded. |
+| `201` | Created — resource was successfully created. |
+| `204` | No Content — request succeeded with no response body. |
+| `400` | Bad Request — the request body or parameters are invalid. |
+| `401` | Unauthorized — no valid authentication was provided. |
+| `403` | Forbidden — authenticated but lacking the required permission. |
+| `404` | Not Found — the requested resource does not exist. |
+| `412` | Precondition Failed — the request conflicts with current state (e.g. duplicate blocklist entry). |
+| `500` | Internal Server Error — something went wrong on the server. |
+
+## Endpoint categories
+
+| Tag | Description |
+|-----|-------------|
+| `auth` | Sign in, sign out, and retrieve the current user. |
+| `search` | Search for movies, TV shows, people, and discover content. |
+| `request` | Create, view, approve, decline, and delete media requests. |
+| `media` | View and manage media items tracked by Seerr. |
+| `movies` | Fetch movie details, ratings, and recommendations from TMDB. |
+| `tv` | Fetch TV series details, season info, and recommendations from TMDB. |
+| `users` | Manage user accounts, permissions, and settings. |
+| `settings` | Configure Seerr, notification agents, background jobs, and more. |
+| `service` | Query connected Radarr and Sonarr instances. |
+| `watchlist` | Add and remove items from the Seerr watchlist. |
+| `blocklist` | Add and remove items from the discovery blocklist. |
+| `public` | Public endpoints that require no authentication. |

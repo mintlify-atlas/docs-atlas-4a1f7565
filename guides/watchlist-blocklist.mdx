@@ -1,0 +1,72 @@
+---
+title: "Watchlists & blocklists"
+description: "Save titles to your personal watchlist and block content from appearing in the discover page."
+---
+
+Seerr provides two complementary features for managing what content users see and track: **watchlists** for saving titles to watch later, and **blocklists** for hiding content from the discovery page.
+
+## Watchlist
+
+A watchlist is a personal collection of movies and TV shows a user wants to watch. Adding an item to your watchlist does not create a request — it simply saves the title for later reference.
+
+### Adding items to your watchlist
+
+On any movie or TV show detail page, click the **Add to Watchlist** button (bookmark icon). The title is saved to your personal watchlist immediately. To remove it, click the same button again.
+
+You can view your watchlist from your user profile page.
+
+### Plex watchlist sync
+
+If you are signed in with a Plex account, Seerr can sync your Plex watchlist automatically. Items you add to your Plex watchlist (in the Plex app or on plex.tv) will appear in your Seerr watchlist, and vice versa.
+
+Watchlist sync is controlled per-user in your profile settings:
+
+- **Sync watchlist movies** — Syncs movies between Seerr and your Plex watchlist.
+- **Sync watchlist TV shows** — Syncs TV shows between Seerr and your Plex watchlist.
+
+<Note>
+  Plex watchlist sync requires that your Seerr account is linked to a Plex account and that your Plex media server is connected in **Settings → Media Server**.
+</Note>
+
+---
+
+## Blocklist
+
+The blocklist lets admins prevent specific movies or TV shows from appearing in Seerr's **Discover** page and from being requested. Blocklisted items are hidden from all users.
+
+### Adding items to the blocklist (admin)
+
+Users with the **Manage Blocklist** permission can add items.
+
+**To blocklist a single title:**
+
+1. Open the movie or TV show detail page.
+2. Click the overflow menu (three dots) and select **Add to Blocklist**.
+
+The item is immediately hidden from the Discover page and cannot be requested.
+
+**To blocklist an entire collection:**
+
+On a movie collection page, click **Blocklist Collection** to blocklist every title in that collection at once. This is useful for blocking entire franchises.
+
+### Viewing and managing the blocklist
+
+Navigate to **Settings → Blocklist** to see all blocklisted items. You can:
+
+- Search for a specific title by name.
+- Filter by **Manual** entries (added individually) or **Tag-based** entries (added automatically via tags).
+- Remove an item from the blocklist by clicking the delete icon, which restores it to the Discover page.
+
+### Tag-based automatic blocklisting
+
+Seerr can automatically blocklist content based on Radarr or Sonarr tags. When a tag you designate as a "blocklist tag" is applied to media in Radarr or Sonarr, Seerr will automatically add that media to the blocklist.
+
+Configure blocklist tags in **Settings → Services** for each Radarr or Sonarr server. Any media with a matching tag is blocklisted automatically during the next library sync.
+
+<Info>
+  Tag-based blocklist entries are identified separately from manually added entries. You can filter the blocklist to show only tag-based entries to review what was automatically blocked.
+</Info>
+
+### Hiding available media
+
+In **Settings → General**, you can enable **Hide available media** to suppress titles that are already available in your library from appearing on the Discover page. This is separate from the blocklist but serves a similar purpose of keeping the Discover page focused on content users do not yet have.

@@ -1,0 +1,102 @@
+---
+title: "Managing requests"
+description: "How to browse, submit, approve, and track media requests in Seerr."
+---
+
+Seerr lets your users request movies and TV shows directly from the web UI. Requests flow through a simple approval workflow before being sent to Radarr or Sonarr for download.
+
+## Request workflow
+
+Every request moves through the following states:
+
+| Status | Meaning |
+|---|---|
+| **Pending** | The request has been submitted and is waiting for admin review. |
+| **Approved** | An admin has approved the request. Seerr has forwarded it to Radarr or Sonarr. |
+| **Declined** | An admin has declined the request. No download is triggered. |
+| **Available** | The media has been downloaded and is available in your library. |
+| **Processing** | The request is approved and the download is in progress. |
+| **Failed** | Seerr was unable to send the request to Radarr or Sonarr. |
+| **Completed** | The request cycle is finished (media is available or was manually marked complete). |
+
+## Browsing and requesting media
+
+<Steps>
+  <Step title="Search or browse">
+    Open Seerr in your browser and use the search bar at the top to find a movie or TV show, or browse the **Discover** page for trending and recommended content.
+  </Step>
+  <Step title="Open the media page">
+    Click a title to open its detail page. Seerr shows whether the title is already available in your library, already requested, or available to request.
+  </Step>
+  <Step title="Submit a request">
+    Click **Request** to open the request dialog. For movies, confirm and submit. For TV shows, choose which seasons to request before submitting.
+
+    <Note>
+      If auto-approve is enabled for your account, the request is immediately forwarded to Radarr or Sonarr without waiting for admin review.
+    </Note>
+  </Step>
+</Steps>
+
+## 4K requests
+
+If your Seerr instance has a 4K Radarr or Sonarr server configured, users with the appropriate permission will see a separate **Request 4K** button on the media detail page. 4K and non-4K requests are tracked independently — a title can be requested in both qualities at the same time.
+
+<Info>
+  The **Request 4K** button only appears when a 4K-enabled Radarr or Sonarr server is configured in **Settings → Services**.
+</Info>
+
+## Per-season requests for TV shows
+
+When requesting a TV show, Seerr lets you select individual seasons rather than requesting the entire series at once. On the request dialog, check the seasons you want. You can submit additional requests for remaining seasons later.
+
+If all requested seasons are already available or already requested, Seerr will notify you rather than creating a duplicate.
+
+## Auto-approve settings
+
+Admins can configure auto-approve so that requests from specific users or user roles are approved instantly without manual review.
+
+To configure auto-approve:
+
+1. Go to **Settings → Users**.
+2. Edit a user or a default permission set.
+3. Enable **Auto-Approve** (or **Auto-Approve 4K**) for the appropriate permission level.
+
+Users with auto-approve enabled skip the pending state entirely — their requests go straight to Radarr or Sonarr.
+
+## Managing pending requests (admin)
+
+Admins and users with the **Manage Requests** permission can view and act on all pending requests.
+
+<Steps>
+  <Step title="Open the requests list">
+    Click **Requests** in the sidebar. By default, the list shows all requests. Use the filter bar to narrow by status: **Pending**, **Approved**, **Declined**, **Available**, or **Processing**.
+  </Step>
+  <Step title="Filter by type">
+    Use the **Movies** / **TV Shows** toggle to view only one media type.
+  </Step>
+  <Step title="Approve or decline a request">
+    Click the checkmark icon to **approve** a request, or the X icon to **decline** it. You can also open the request detail to see who submitted it and when.
+  </Step>
+  <Step title="Retry a failed request">
+    If a request has **Failed** status — for example because Radarr or Sonarr was unreachable — click the retry icon to re-send it.
+  </Step>
+</Steps>
+
+<Tip>
+  Use the **Pending** filter to see only requests that need your attention.
+</Tip>
+
+## Request permissions
+
+Request behavior is controlled by user permissions:
+
+| Permission | Effect |
+|---|---|
+| **Request** | User can submit requests (subject to admin approval). |
+| **Auto-Approve** | User's requests are approved and forwarded immediately. |
+| **Request 4K** | User can submit 4K requests. |
+| **Auto-Approve 4K** | User's 4K requests are auto-approved. |
+| **Manage Requests** | User can approve, decline, and manage all requests. |
+| **Request View** | User can view all requests without being able to manage them. |
+
+Permissions are set per user in **Settings → Users**, or applied as defaults in **Settings → General**.

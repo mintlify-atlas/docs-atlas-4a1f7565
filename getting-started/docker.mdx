@@ -1,0 +1,313 @@
+---
+title: "Docker (Recommended)"
+description: "Install Seerr using Docker — the recommended method for most users."
+---
+
+<Note>
+  This is the recommended installation method for most users. For details on how to install Docker, see the [official Docker documentation](https://docs.docker.com/get-docker/).
+</Note>
+
+## Image tags
+
+Seerr images are published to the GitHub Container Registry at `ghcr.io/seerr-team/seerr`. The following tags are available:
+
+- `latest` — always points to the most recent stable release
+- Version tags (e.g. `v3.0.0`) — for pinning to a specific stable version
+- `develop` — rolling builds from the latest commits; use with caution
+
+<Note>
+  All official Seerr images are cryptographically signed and include a verified [Software Bill of Materials (SBOM)](https://cyclonedx.org/). To verify that the image you are using is authentic and unmodified, see the [Verifying Signed Artifacts](/advanced/verifying-signed-artifacts) guide.
+</Note>
+
+## Environment variables
+
+| Variable    | Description                                                                                                            | Required |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------- | -------- |
+| `TZ`        | Timezone in [TZ database format](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) (e.g. `America/New_York`) | Yes      |
+| `LOG_LEVEL` | Log verbosity. Accepts `debug`, `info`, `warn`, or `error`.                                                            | No       |
+| `PORT`      | Port Seerr listens on. Defaults to `5055`.                                                                             | No       |
+
+## Unix (Linux, macOS)
+
+<Warning>
+  Replace `/path/to/appdata/config` in the examples below with a valid host directory path. If this volume mount is not configured correctly, your Seerr data will not be persisted when the container is recreated.
+
+  Set `TZ` to the [TZ database name](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) for your timezone.
+</Warning>
+
+<Tabs>
+  <Tab title="Docker CLI">
+    For details on the Docker CLI, see the [official `docker run` documentation](https://docs.docker.com/engine/reference/run/).
+
+    **Installation**
+
+    Create the config directory and set the correct ownership. The container runs as the `node` user (UID 1000):
+
+    ```bash
+    mkdir /path/to/appdata/config
+    chown -R 1000:1000 /path/to/appdata/config
+    ```
+
+    Start the container:
+
+    ```bash
+    docker run -d \
+      --name seerr \
+      --init \
+      -e LOG_LEVEL=debug \
+      -e TZ=America/New_York \
+      -e PORT=5055 \
+      -p 5055:5055 \
+      -v /path/to/appdata/config:/app/config \
+      --restart unless-stopped \
+      --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:5055/api/v1/status || exit 1" \
+      --health-start-period 20s \
+      --health-timeout 3s \
+      --health-interval 15s \
+      --health-retries 3 \
+      ghcr.io/seerr-team/seerr:latest
+    ```
+
+    The `-e PORT=5055` argument is optional. To run the container as a specific user or group, add `--user=[ user | user:group | uid | uid:gid ]` to the command.
+
+    **Updating**
+
+    <Steps>
+      <Step title="Stop and remove the existing container">
+        ```bash
+        docker stop seerr && docker rm seerr
+        ```
+      </Step>
+      <Step title="Pull the latest image">
+        ```bash
+        docker pull ghcr.io/seerr-team/seerr:latest
+        ```
+      </Step>
+      <Step title="Start the container">
+        Run `docker run -d ...` with the same parameters used to originally create the container.
+      </Step>
+    </Steps>
+
+    <Tip>
+      You can use [Watchtower](https://github.com/containrrr/watchtower) or [Ouroboros](https://github.com/pyouroboros/ouroboros) to keep Seerr updated automatically, or [diun](https://github.com/crazy-max/diun) to receive notifications when a new image is available.
+    </Tip>
+  </Tab>
+  <Tab title="Docker Compose">
+    For details on Docker Compose, see the [official Compose documentation](https://docs.docker.com/compose/reference/).
+
+    **Installation**
+
+    Define the `seerr` service in your `compose.yaml`:
+
+    ```yaml compose.yaml
+    services:
+      seerr:
+        image: ghcr.io/seerr-team/seerr:latest
+        init: true
+        container_name: seerr
+        environment:
+          - LOG_LEVEL=debug
+          - TZ=America/New_York
+          - PORT=5055 # optional
+        ports:
+          - 5055:5055
+        volumes:
+          - /path/to/appdata/config:/app/config
+        healthcheck:
+          test: wget --no-verbose --tries=1 --spider http://localhost:5055/api/v1/status || exit 1
+          start_period: 20s
+          timeout: 3s
+          interval: 15s
+          retries: 3
+        restart: unless-stopped
+    ```
+
+    Create the config directory and set the correct ownership:
+
+    ```bash
+    mkdir /path/to/appdata/config
+    chown -R 1000:1000 /path/to/appdata/config
+    ```
+
+    Start the service:
+
+    ```bash
+    docker compose up -d
+    ```
+
+    **Updating**
+
+    <Steps>
+      <Step title="Pull the latest image">
+        ```bash
+        docker compose pull seerr
+        ```
+      </Step>
+      <Step title="Restart the service">
+        ```bash
+        docker compose up -d
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+## Windows
+
+See the [Docker Desktop for Windows documentation](https://docs.docker.com/docker-for-windows/) for installation instructions.
+
+<Warning>
+  **WSL2 must be installed to prevent database corruption.** See the [Docker Desktop WSL 2 backend documentation](https://docs.docker.com/docker-for-windows/wsl/) for setup instructions. The commands below require WSL2 to be enabled.
+</Warning>
+
+First, create a named volume to store Seerr's configuration data. Named volumes are automatically mounted inside the WSL2 VM, which avoids the database corruption issues that affect bind-mounted Windows paths.
+
+Using the Docker CLI:
+
+```bash
+docker volume create seerr-data
+```
+
+Or using Docker Desktop:
+
+<Steps>
+  <Step title="Open Docker Desktop">
+    Navigate to the **Volumes** tab.
+  </Step>
+  <Step title="Create a new volume">
+    Click **New Volume**, enter `seerr-data`, and click **Create**.
+  </Step>
+</Steps>
+
+Then create and start the Seerr container:
+
+<Tabs>
+  <Tab title="Docker CLI (PowerShell)">
+    ```powershell
+    docker run -d `
+      --name seerr `
+      --init `
+      -e LOG_LEVEL=debug `
+      -e TZ=America/New_York `
+      -e PORT=5055 `
+      -p 5055:5055 `
+      -v seerr-data:/app/config `
+      --restart unless-stopped `
+      --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:5055/api/v1/status || exit 1" `
+      --health-start-period 20s `
+      --health-timeout 3s `
+      --health-interval 15s `
+      --health-retries 3 `
+      ghcr.io/seerr-team/seerr:latest
+    ```
+
+    The `-e PORT=5055` argument is optional.
+
+    **Updating**
+
+    <Steps>
+      <Step title="Stop and remove the existing container">
+        ```powershell
+        docker stop seerr; docker rm seerr
+        ```
+      </Step>
+      <Step title="Pull the latest image">
+        ```powershell
+        docker pull ghcr.io/seerr-team/seerr:latest
+        ```
+      </Step>
+      <Step title="Start the container">
+        Run `docker run -d ...` with the same parameters used originally.
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="Docker CLI (CMD)">
+    ```batch
+    docker run -d ^
+      --name seerr ^
+      --init ^
+      -e LOG_LEVEL=debug ^
+      -e TZ=America/New_York ^
+      -e PORT=5055 ^
+      -p 5055:5055 ^
+      -v seerr-data:/app/config ^
+      --restart unless-stopped ^
+      --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:5055/api/v1/status || exit 1" ^
+      --health-start-period 20s ^
+      --health-timeout 3s ^
+      --health-interval 15s ^
+      --health-retries 3 ^
+      ghcr.io/seerr-team/seerr:latest
+    ```
+
+    The `-e PORT=5055` argument is optional.
+
+    **Updating**
+
+    <Steps>
+      <Step title="Stop and remove the existing container">
+        ```batch
+        docker stop seerr && docker rm seerr
+        ```
+      </Step>
+      <Step title="Pull the latest image">
+        ```batch
+        docker pull ghcr.io/seerr-team/seerr:latest
+        ```
+      </Step>
+      <Step title="Start the container">
+        Run `docker run -d ...` with the same parameters used originally.
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="Docker Compose">
+    ```yaml compose.yaml
+    services:
+      seerr:
+        image: ghcr.io/seerr-team/seerr:latest
+        init: true
+        container_name: seerr
+        environment:
+          - LOG_LEVEL=debug
+          - TZ=America/New_York
+        ports:
+          - 5055:5055
+        volumes:
+          - seerr-data:/app/config
+        healthcheck:
+          test: wget --no-verbose --tries=1 --spider http://localhost:5055/api/v1/status || exit 1
+          start_period: 20s
+          timeout: 3s
+          interval: 15s
+          retries: 3
+        restart: unless-stopped
+
+    volumes:
+      seerr-data:
+        external: true
+    ```
+
+    **Updating**
+
+    <Steps>
+      <Step title="Pull the latest image">
+        ```bash
+        docker compose pull seerr
+        ```
+      </Step>
+      <Step title="Restart the service">
+        ```bash
+        docker compose up -d
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+To access files inside the volume, navigate to `\\wsl$\docker-desktop-data\version-pack-data\community\docker\volumes\seerr-data\_data` in File Explorer.
+
+<Info>
+  Docker on Windows runs inside a stripped-down Linux VM and exposes volume mounts via SMB. SMB does not support file locking, which will eventually corrupt the SQLite database used by Seerr.
+
+  **Use named volumes** (as shown above) to keep the `/app/config` directory inside the VM rather than on the Windows host. Named volumes are not affected by this limitation.
+</Info>

@@ -1,0 +1,161 @@
+---
+title: "Backups & restore"
+description: "What Seerr saves, how to back it up, and how to restore it for both SQLite and PostgreSQL."
+---
+
+## What Seerr saves
+
+Seerr stores two categories of data:
+
+**Settings (`settings.json`)**
+All configuration from the **Settings** panel — including Radarr, Sonarr, Jellyfin, Plex, Emby integrations, and notification settings — is saved to `settings.json` in the Seerr config directory.
+
+**Database**
+Everything else — user accounts, media requests, the blocklist, and other application state — is stored in the database (either SQLite or PostgreSQL).
+
+## Config directory structure
+
+```
+config/
+├── cache/           # Optional — cached metadata
+├── db/
+│   └── db.sqlite3   # SQLite database file (SQLite only)
+├── logs/            # Optional — application logs
+└── settings.json    # Application settings
+```
+
+## Backup
+
+<Tabs>
+  <Tab title="SQLite">
+    **Option 1: Stop the application (simplest)**
+
+    Stop Seerr and copy the entire config directory to your backup location. This is the simplest and safest method.
+
+    **Option 2: Live backup with the SQLite CLI**
+
+    If you cannot stop the application, use the [SQLite CLI](https://www.sqlite.org/download.html) to create a consistent backup while Seerr is running:
+
+    ```bash
+    sqlite3 db/db.sqlite3 ".backup '/tmp/seerr_db.sqlite3.bak'"
+    ```
+
+    Then copy the backup file to your desired backup location:
+
+    ```bash
+    cp /tmp/seerr_db.sqlite3.bak /your/backup/location/
+    ```
+
+    <Note>
+      If your backup system uses filesystem snapshots (such as Kubernetes with Volsync), you can snapshot the entire Seerr data directory directly without stopping the application.
+    </Note>
+
+    Back up `settings.json` separately if you want to preserve your Seerr configuration alongside the database.
+  </Tab>
+  <Tab title="PostgreSQL">
+    You can back up a PostgreSQL database without stopping Seerr.
+
+    Install the [PostgreSQL client tools](https://www.postgresql.org/download/) and run:
+
+    ```bash
+    pg_dump -U <database_user> -d <database_name> -f /tmp/seerr_db.sql
+    ```
+
+    <Info>
+      Depending on your PostgreSQL configuration, you may need to add connection options:
+
+      ```
+      -h, --host=HOSTNAME    database server host or socket directory
+      -p, --port=PORT        database server port number
+      ```
+    </Info>
+
+    Copy the dump file to your backup location:
+
+    ```bash
+    cp /tmp/seerr_db.sql /your/backup/location/
+    ```
+
+    Back up `settings.json` separately if you want to preserve your Seerr configuration.
+  </Tab>
+</Tabs>
+
+## Restore
+
+<Tabs>
+  <Tab title="SQLite">
+    <Steps>
+      <Step title="Restore the database file">
+        Copy your `db.sqlite3` backup to the `db/` subdirectory inside the Seerr config folder:
+
+        ```bash
+        cp /your/backup/location/seerr_db.sqlite3.bak /path/to/config/db/db.sqlite3
+        ```
+      </Step>
+      <Step title="Restore settings (optional)">
+        Copy `settings.json` back to the config directory if you want to avoid reconfiguring Seerr from scratch:
+
+        ```bash
+        cp /your/backup/location/settings.json /path/to/config/settings.json
+        ```
+      </Step>
+      <Step title="Verify the config directory structure">
+        After restoring, the config directory should look like this:
+
+        ```
+        config/
+        ├── cache/           # Optional
+        ├── db/
+        │   └── db.sqlite3
+        ├── logs/            # Optional
+        └── settings.json    # Optional, but recommended
+        ```
+      </Step>
+      <Step title="Start Seerr">
+        Start the Seerr application. It will connect to the restored database automatically.
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="PostgreSQL">
+    <Steps>
+      <Step title="Restore the database dump">
+        Install the [PostgreSQL client tools](https://www.postgresql.org/download/) and run:
+
+        ```bash
+        pg_restore -U <database_user> -d <database_name> /tmp/seerr_db.sql
+        ```
+
+        <Info>
+          Depending on your PostgreSQL configuration, you may need to add connection options:
+
+          ```
+          -h, --host=HOSTNAME    database server host or socket directory
+          -p, --port=PORT        database server port number
+          ```
+        </Info>
+      </Step>
+      <Step title="Restore settings (optional)">
+        Copy `settings.json` back to the config directory if you want to avoid reconfiguring Seerr from scratch:
+
+        ```bash
+        cp /your/backup/location/settings.json /path/to/config/settings.json
+        ```
+      </Step>
+      <Step title="Verify the config directory structure">
+        After restoring, the config directory should look like this:
+
+        ```
+        config/
+        ├── cache/           # Optional
+        ├── logs/            # Optional
+        └── settings.json    # Optional, but recommended
+        ```
+
+        The database itself lives in PostgreSQL, not in the config directory.
+      </Step>
+      <Step title="Start Seerr">
+        Start the Seerr application. It will connect to the restored PostgreSQL database automatically.
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>

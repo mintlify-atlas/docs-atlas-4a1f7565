@@ -1,0 +1,392 @@
+---
+title: "Requests"
+description: "List, create, approve, decline, and delete media requests."
+---
+
+## Request object
+
+All request endpoints return a `MediaRequest` object:
+
+<ResponseField name="id" type="number">
+  Unique request ID.
+</ResponseField>
+
+<ResponseField name="status" type="number">
+  Request status: `1` = Pending, `2` = Approved, `3` = Declined, `4` = Failed, `5` = Completed.
+</ResponseField>
+
+<ResponseField name="media" type="object">
+  The associated media item.
+  <Expandable title="MediaInfo fields">
+    <ResponseField name="id" type="number">Seerr media ID.</ResponseField>
+    <ResponseField name="tmdbId" type="number">TMDB ID.</ResponseField>
+    <ResponseField name="tvdbId" type="number">TheTVDB ID (TV only).</ResponseField>
+    <ResponseField name="status" type="number">
+      Availability: `1` = Unknown, `2` = Pending, `3` = Processing, `4` = Partially Available, `5` = Available, `6` = Deleted.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="requestedBy" type="object">
+  The user who submitted the request.
+</ResponseField>
+
+<ResponseField name="modifiedBy" type="object">
+  The user who last modified the request (approved or declined it).
+</ResponseField>
+
+<ResponseField name="is4k" type="boolean">
+  Whether this is a 4K request.
+</ResponseField>
+
+<ResponseField name="serverId" type="number">
+  The ID of the Radarr/Sonarr server this request is routed to.
+</ResponseField>
+
+<ResponseField name="profileId" type="number">
+  The quality profile ID on the target service.
+</ResponseField>
+
+<ResponseField name="rootFolder" type="string">
+  The root folder path on the target service.
+</ResponseField>
+
+<ResponseField name="createdAt" type="string">
+  ISO 8601 timestamp of when the request was created.
+</ResponseField>
+
+<ResponseField name="updatedAt" type="string">
+  ISO 8601 timestamp of the last update.
+</ResponseField>
+
+---
+
+## List requests
+
+Returns all requests. Admins and users with `MANAGE_REQUESTS` permission see all requests; other users only see their own.
+
+**`GET /request`**
+
+<ParamField query="take" type="number">
+  Number of results to return. Defaults to all.
+</ParamField>
+
+<ParamField query="skip" type="number">
+  Number of results to skip (for pagination).
+</ParamField>
+
+<ParamField query="filter" type="string">
+  Filter by status: `all` (default), `approved`, `available`, `pending`, `processing`, `unavailable`, `failed`, `deleted`, `completed`.
+</ParamField>
+
+<ParamField query="sort" type="string" default="added">
+  Sort field: `added` or `modified`.
+</ParamField>
+
+<ParamField query="sortDirection" type="string" default="desc">
+  Sort direction: `asc` or `desc`.
+</ParamField>
+
+<ParamField query="requestedBy" type="number">
+  Filter to requests from a specific user ID.
+</ParamField>
+
+<ParamField query="mediaType" type="string" default="all">
+  Filter by media type: `movie`, `tv`, or `all`.
+</ParamField>
+
+<Tabs>
+  <Tab title="curl">
+    ```bash
+    curl -X GET "http://localhost:5055/api/v1/request?filter=pending&take=20" \
+      -H "X-Api-Key: your-api-key"
+    ```
+  </Tab>
+  <Tab title="Response">
+    ```json
+    {
+      "pageInfo": {
+        "page": 1,
+        "pages": 5,
+        "results": 94
+      },
+      "results": [
+        {
+          "id": 42,
+          "status": 1,
+          "media": {
+            "id": 10,
+            "tmdbId": 438631,
+            "status": 2
+          },
+          "requestedBy": {
+            "id": 3,
+            "email": "user@example.com",
+            "username": "alice"
+          },
+          "modifiedBy": null,
+          "is4k": false,
+          "createdAt": "2024-03-01T12:00:00.000Z",
+          "updatedAt": "2024-03-01T12:00:00.000Z"
+        }
+      ]
+    }
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Get request counts
+
+Returns totals broken down by status.
+
+**`GET /request/count`**
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/request/count" \
+  -H "X-Api-Key: your-api-key"
+```
+
+```json
+{
+  "total": 250,
+  "movie": 180,
+  "tv": 70,
+  "pending": 12,
+  "approved": 200,
+  "declined": 8,
+  "processing": 15,
+  "available": 175,
+  "completed": 40
+}
+```
+
+---
+
+## Create a request
+
+Submits a new media request. Requires the `REQUEST` permission. Users with `ADMIN` or `AUTO_APPROVE` permissions have their requests automatically approved.
+
+**`POST /request`**
+
+<ParamField body="mediaType" type="string" required>
+  `"movie"` or `"tv"`.
+</ParamField>
+
+<ParamField body="mediaId" type="number" required>
+  The TMDB ID of the movie or TV series.
+</ParamField>
+
+<ParamField body="tvdbId" type="number">
+  TheTVDB ID (TV only).
+</ParamField>
+
+<ParamField body="seasons" type="array | string">
+  For TV requests: an array of season numbers (e.g. `[1, 2, 3]`) or the string `"all"` to request all seasons.
+</ParamField>
+
+<ParamField body="is4k" type="boolean">
+  Request 4K version.
+</ParamField>
+
+<ParamField body="serverId" type="number">
+  Radarr/Sonarr server ID to route the request to.
+</ParamField>
+
+<ParamField body="profileId" type="number">
+  Quality profile ID on the target service.
+</ParamField>
+
+<ParamField body="rootFolder" type="string">
+  Root folder path on the target service.
+</ParamField>
+
+<ParamField body="languageProfileId" type="number">
+  Language profile ID (Sonarr only).
+</ParamField>
+
+<ParamField body="userId" type="number">
+  Submit the request on behalf of another user. Requires `MANAGE_REQUESTS`.
+</ParamField>
+
+<Tabs>
+  <Tab title="Movie request">
+    ```bash
+    curl -X POST "http://localhost:5055/api/v1/request" \
+      -H "X-Api-Key: your-api-key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "mediaType": "movie",
+        "mediaId": 438631
+      }'
+    ```
+  </Tab>
+  <Tab title="TV request (specific seasons)">
+    ```bash
+    curl -X POST "http://localhost:5055/api/v1/request" \
+      -H "X-Api-Key: your-api-key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "mediaType": "tv",
+        "mediaId": 76479,
+        "seasons": [1, 2, 3]
+      }'
+    ```
+  </Tab>
+  <Tab title="TV request (all seasons)">
+    ```bash
+    curl -X POST "http://localhost:5055/api/v1/request" \
+      -H "X-Api-Key: your-api-key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "mediaType": "tv",
+        "mediaId": 76479,
+        "seasons": "all"
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+Returns `201 Created` with the new `MediaRequest` object.
+
+---
+
+## Get a request
+
+Returns a single request by ID.
+
+**`GET /request/{requestId}`**
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/request/42" \
+  -H "X-Api-Key: your-api-key"
+```
+
+---
+
+## Update a request
+
+Updates a request's server, profile, or root folder assignment. Requires `MANAGE_REQUESTS`.
+
+**`PUT /request/{requestId}`**
+
+<ParamField body="mediaType" type="string" required>
+  `"movie"` or `"tv"`.
+</ParamField>
+
+<ParamField body="seasons" type="number[]">
+  Updated list of season numbers (TV only).
+</ParamField>
+
+<ParamField body="is4k" type="boolean">
+  Whether this is a 4K request.
+</ParamField>
+
+<ParamField body="serverId" type="number">
+  Radarr/Sonarr server ID.
+</ParamField>
+
+<ParamField body="profileId" type="number">
+  Quality profile ID.
+</ParamField>
+
+<ParamField body="rootFolder" type="string">
+  Root folder path.
+</ParamField>
+
+<ParamField body="languageProfileId" type="number">
+  Language profile ID (Sonarr only).
+</ParamField>
+
+```bash
+curl -X PUT "http://localhost:5055/api/v1/request/42" \
+  -H "X-Api-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mediaType": "movie",
+    "serverId": 1,
+    "profileId": 4
+  }'
+```
+
+---
+
+## Delete a request
+
+Removes a request. Users with `MANAGE_REQUESTS` can remove any request; other users can only remove their own pending requests.
+
+**`DELETE /request/{requestId}`**
+
+```bash
+curl -X DELETE "http://localhost:5055/api/v1/request/42" \
+  -H "X-Api-Key: your-api-key"
+```
+
+Returns `204 No Content` on success.
+
+---
+
+## Approve a request
+
+**`POST /request/{requestId}/approve`**
+
+Requires `MANAGE_REQUESTS` or `ADMIN`.
+
+```bash
+curl -X POST "http://localhost:5055/api/v1/request/42/approve" \
+  -H "X-Api-Key: your-api-key"
+```
+
+This is shorthand for `POST /request/{requestId}/{status}` with `status=approve`.
+
+---
+
+## Decline a request
+
+**`POST /request/{requestId}/decline`**
+
+Requires `MANAGE_REQUESTS` or `ADMIN`.
+
+```bash
+curl -X POST "http://localhost:5055/api/v1/request/42/decline" \
+  -H "X-Api-Key: your-api-key"
+```
+
+---
+
+## Retry a failed request
+
+Resends a failed request to Radarr or Sonarr.
+
+**`POST /request/{requestId}/retry`**
+
+Requires `MANAGE_REQUESTS` or `ADMIN`.
+
+```bash
+curl -X POST "http://localhost:5055/api/v1/request/42/retry" \
+  -H "X-Api-Key: your-api-key"
+```
+
+---
+
+## Request status values
+
+| Value | Meaning |
+|-------|---------|
+| `1` | Pending — awaiting approval. |
+| `2` | Approved — approved, being processed by Radarr/Sonarr. |
+| `3` | Declined — rejected by an admin. |
+| `4` | Failed — could not be sent to Radarr/Sonarr. |
+| `5` | Completed — media is now available in the library. |
+
+Media availability status (on the `media` object) uses a separate set of values:
+
+| Value | Meaning |
+|-------|---------|
+| `1` | Unknown |
+| `2` | Pending |
+| `3` | Processing |
+| `4` | Partially Available |
+| `5` | Available |
+| `6` | Deleted |

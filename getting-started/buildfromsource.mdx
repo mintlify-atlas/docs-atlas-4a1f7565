@@ -1,0 +1,337 @@
+---
+title: "Build from Source"
+description: "Install Seerr by building directly from the source code. Intended for advanced users."
+---
+
+<Warning>
+  This method is not recommended for most users. It is intended for advanced users who are comfortable managing their own server infrastructure. For most use cases, [Docker](/getting-started/docker) is the preferred installation method.
+</Warning>
+
+## Prerequisites
+
+- [Node.js 22.x](https://nodejs.org/en/download/)
+- [pnpm 10.x](https://pnpm.io/installation)
+- [Git](https://git-scm.com/downloads)
+
+## Unix (Linux, macOS)
+
+### Installation
+
+<Steps>
+  <Step title="Create the working directory">
+    Create the directory where Seerr will be installed and navigate to it:
+
+    ```bash
+    sudo mkdir -p /opt/seerr && cd /opt/seerr
+    ```
+  </Step>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/seerr-team/seerr.git .
+    git checkout main
+    ```
+  </Step>
+  <Step title="Install dependencies">
+    ```bash
+    CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile
+    ```
+  </Step>
+  <Step title="Build the project">
+    ```bash
+    pnpm build
+    ```
+  </Step>
+  <Step title="Start Seerr">
+    ```bash
+    pnpm start
+    ```
+  </Step>
+</Steps>
+
+<Info>
+  Seerr is now accessible at `http://localhost:5055`.
+</Info>
+
+### Run as a service
+
+<Tabs>
+  <Tab title="Linux (systemd)">
+    <Steps>
+      <Step title="Create the environment file">
+        Create `/etc/seerr/seerr.conf`:
+
+        ```bash
+        # Port Seerr listens on (default: 5055)
+        PORT=5055
+
+        # Uncomment to restrict to a specific interface
+        #HOST=127.0.0.1
+
+        # Uncomment to force IPv4 resolution before IPv6 (advanced users only)
+        #FORCE_IPV4_FIRST=true
+        ```
+      </Step>
+      <Step title="Find the path to Node.js">
+        ```bash
+        which node
+        ```
+
+        Note the output (e.g. `/usr/bin/node`).
+      </Step>
+      <Step title="Create the systemd service file">
+        Create `/etc/systemd/system/seerr.service` using `sudo nano /etc/systemd/system/seerr.service` or `sudo systemctl edit --force seerr`:
+
+        ```bash
+        [Unit]
+        Description=Seerr Service
+        Wants=network-online.target
+        After=network-online.target
+
+        [Service]
+        EnvironmentFile=/etc/seerr/seerr.conf
+        Environment=NODE_ENV=production
+        Type=exec
+        Restart=on-failure
+        WorkingDirectory=/opt/seerr
+        ExecStart=/usr/bin/node dist/index.js
+
+        [Install]
+        WantedBy=multi-user.target
+        ```
+
+        <Note>
+          Replace `/usr/bin/node` with the path found in the previous step if it differs.
+        </Note>
+      </Step>
+      <Step title="Enable and start the service">
+        ```bash
+        sudo systemctl enable seerr
+        sudo systemctl start seerr
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="macOS (launchd)">
+    <Steps>
+      <Step title="Find the path to Node.js">
+        ```bash
+        which node
+        ```
+
+        Note the output (e.g. `/usr/local/bin/node`).
+      </Step>
+      <Step title="Create the launchd plist file">
+        Create `~/Library/LaunchAgents/com.seerr.plist`:
+
+        ```xml
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+          <key>Label</key>
+          <string>com.seerr</string>
+          <key>ProgramArguments</key>
+          <array>
+            <string>/usr/local/bin/node</string>
+            <string>/opt/seerr/dist/index.js</string>
+          </array>
+          <key>WorkingDirectory</key>
+          <string>/opt/seerr</string>
+          <key>EnvironmentVariables</key>
+          <dict>
+            <key>NODE_ENV</key>
+            <string>production</string>
+            <key>PORT</key>
+            <string>5055</string>
+          </dict>
+          <key>RunAtLoad</key>
+          <true/>
+          <key>KeepAlive</key>
+          <true/>
+        </dict>
+        </plist>
+        ```
+
+        <Note>
+          Replace `/usr/local/bin/node` with the path found in the previous step if it differs.
+        </Note>
+      </Step>
+      <Step title="Load and start the service">
+        ```bash
+        sudo launchctl load ~/Library/LaunchAgents/com.seerr.plist
+        sudo launchctl start com.seerr
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="PM2">
+    <Steps>
+      <Step title="Install PM2">
+        ```bash
+        npm install -g pm2
+        ```
+      </Step>
+      <Step title="Start Seerr with PM2">
+        ```bash
+        NODE_ENV=production pm2 start dist/index.js --name seerr
+        ```
+      </Step>
+      <Step title="Save the process list">
+        ```bash
+        pm2 save
+        ```
+      </Step>
+      <Step title="Configure PM2 to start on boot">
+        ```bash
+        pm2 startup
+        ```
+      </Step>
+    </Steps>
+
+    **Managing the service**
+
+    | Action          | Command                |
+    | --------------- | ---------------------- |
+    | Start           | `pm2 start seerr`    |
+    | Stop            | `pm2 stop seerr`     |
+    | Restart         | `pm2 restart seerr`  |
+    | View logs       | `pm2 logs seerr`     |
+    | View status     | `pm2 status seerr`   |
+  </Tab>
+</Tabs>
+
+## Windows
+
+### Installation
+
+<Steps>
+  <Step title="Create the working directory">
+    ```powershell
+    mkdir C:\seerr
+    cd C:\seerr
+    ```
+  </Step>
+  <Step title="Clone the repository">
+    ```powershell
+    git clone https://github.com/seerr-team/seerr.git .
+    git checkout main
+    ```
+  </Step>
+  <Step title="Install dependencies">
+    ```powershell
+    npm install -g win-node-env
+    $env:CYPRESS_INSTALL_BINARY = 0; pnpm install --frozen-lockfile
+    ```
+  </Step>
+  <Step title="Build the project">
+    ```powershell
+    pnpm build
+    ```
+  </Step>
+  <Step title="Start Seerr">
+    ```powershell
+    pnpm start
+    ```
+  </Step>
+</Steps>
+
+<Tip>
+  You can store environment variables in a `.env` file in the Seerr directory instead of setting them inline.
+</Tip>
+
+<Info>
+  Seerr is now accessible at `http://localhost:5055`.
+</Info>
+
+### Run as a service
+
+<Tabs>
+  <Tab title="Task Scheduler">
+    <Steps>
+      <Step title="Create a startup script">
+        Create `start-seerr.bat` in the Seerr directory:
+
+        ```batch
+        @echo off
+        set PORT=5055
+        set NODE_ENV=production
+        node dist/index.js
+        ```
+      </Step>
+      <Step title="Create a scheduled task">
+        - Open **Task Scheduler**
+        - Click **Create Basic Task**
+        - Set the name to `Seerr`
+        - Set the trigger to **When the computer starts**
+        - Set the action to **Start a program**
+        - Set the program to the path of `start-seerr.bat`
+        - Set **Start in** to the Seerr directory
+        - Click **Finish**
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="NSSM">
+    <Steps>
+      <Step title="Download NSSM">
+        Download the [Non-Sucking Service Manager](https://nssm.cc/download).
+      </Step>
+      <Step title="Install and configure the service">
+        ```powershell
+        nssm install Seerr "C:\Program Files\nodejs\node.exe" "C:\seerr\dist\index.js"
+        nssm set Seerr AppDirectory "C:\seerr"
+        nssm set Seerr AppEnvironmentExtra NODE_ENV=production
+        nssm set Seerr Start SERVICE_AUTO_START
+        ```
+      </Step>
+      <Step title="Start the service">
+        ```powershell
+        nssm start Seerr
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="PM2">
+    <Steps>
+      <Step title="Install PM2">
+        ```powershell
+        npm install -g pm2
+        ```
+      </Step>
+      <Step title="Start Seerr with PM2">
+        ```powershell
+        $env:NODE_ENV = "production"; pm2 start dist/index.js --name seerr
+        ```
+      </Step>
+      <Step title="Save the process list">
+        ```powershell
+        pm2 save
+        ```
+      </Step>
+      <Step title="Configure PM2 to start on boot">
+        ```powershell
+        pm2 startup
+        ```
+      </Step>
+    </Steps>
+
+    **Managing the service**
+
+    | Action          | Command                |
+    | --------------- | ---------------------- |
+    | Start           | `pm2 start seerr`    |
+    | Stop            | `pm2 stop seerr`     |
+    | Restart         | `pm2 restart seerr`  |
+    | View logs       | `pm2 logs seerr`     |
+    | View status     | `pm2 status seerr`   |
+  </Tab>
+</Tabs>
+
+## Updating
+
+To update Seerr, pull the latest changes and repeat the build steps:
+
+```bash
+git pull
+```
+
+Then follow the [installation steps](#installation) above to rebuild and restart Seerr.

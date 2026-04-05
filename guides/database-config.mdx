@@ -1,0 +1,201 @@
+---
+title: "Database configuration"
+description: "Configure Seerr to use SQLite (default) or PostgreSQL, including TCP and Unix socket connections."
+---
+
+Seerr supports two database backends: **SQLite** (the default) and **PostgreSQL**. You configure the database using environment variables before starting the application.
+
+## SQLite (default)
+
+SQLite requires no additional setup. If you do not set `DB_TYPE`, Seerr uses SQLite automatically and stores the database file in the config directory.
+
+```dotenv
+DB_TYPE=sqlite
+# Optional: path to the config directory where the db file is stored. Default is "config".
+CONFIG_DIRECTORY="config"
+# Optional: log all DB queries for debugging. Default is "false".
+DB_LOG_QUERIES="false"
+```
+
+## PostgreSQL
+
+<Warning>
+  When migrating PostgreSQL from version 17 to 18 in Docker, the data mount point has changed. Use `/var/lib/postgresql` instead of `/var/lib/postgresql/data`. Refer to the [PostgreSQL Docker documentation](https://hub.docker.com/_/postgres/#pgdata) for migration details.
+</Warning>
+
+Set `DB_TYPE=postgres` and provide connection details using one of the two methods below.
+
+<Tabs>
+  <Tab title="TCP connection">
+    Use a TCP connection when your PostgreSQL server is on a different host or listening on a network port.
+
+    ```dotenv
+    DB_TYPE=postgres
+    # Optional: hostname or IP of the database server. Default is "localhost".
+    DB_HOST=localhost
+    # Optional: port number. Default is "5432".
+    DB_PORT="5432"
+    # Required: database username.
+    DB_USER=
+    # Required: database password.
+    DB_PASS=
+    # Optional: database name. Default is "seerr".
+    DB_NAME="seerr"
+    # Optional: log all DB queries for debugging. Default is "false".
+    DB_LOG_QUERIES="false"
+    ```
+  </Tab>
+  <Tab title="Unix socket connection">
+    Use a Unix socket connection when PostgreSQL is running on the same host and configured to accept socket connections.
+
+    ```dotenv
+    DB_TYPE=postgres
+    # Required: path to the PostgreSQL Unix socket directory.
+    DB_SOCKET_PATH="/var/run/postgresql"
+    # Required: database username.
+    DB_USER=
+    # Optional: database password (depends on server auth config).
+    DB_PASS=
+    # Optional: database name. Default is "seerr".
+    DB_NAME="seerr"
+    # Optional: log all DB queries for debugging. Default is "false".
+    DB_LOG_QUERIES="false"
+    ```
+
+    <Info>
+      The PostgreSQL socket path depends on your OS and installation method:
+
+      | Platform | Default socket path |
+      |---|---|
+      | Ubuntu / Debian | `/var/run/postgresql` |
+      | CentOS / RHEL / Fedora | `/var/run/postgresql` |
+      | macOS (Homebrew) | `/tmp` or `/opt/homebrew/var/postgresql` |
+      | macOS (Postgres.app) | `/tmp` |
+      | Windows | Not applicable — use TCP |
+
+      To find your socket path:
+
+      ```bash
+      # Find the PostgreSQL socket directory
+      find /tmp /var/run /run -name ".s.PGSQL.*" 2>/dev/null | head -1 | xargs dirname
+
+      # Or check PostgreSQL configuration directly
+      sudo -u postgres psql -c "SHOW unix_socket_directories;"
+      ```
+    </Info>
+  </Tab>
+</Tabs>
+
+## SSL configuration
+
+The following variables configure SSL for the PostgreSQL connection. `DB_USE_SSL` must be set to `"true"` for any other SSL options to take effect. Certificate values can be provided as inline strings or as file paths — the string version takes precedence.
+
+```dotenv
+# Enable SSL for the database connection. Default is "false".
+DB_USE_SSL="false"
+# Reject connections with unverifiable certificates (e.g. self-signed). Default is "true".
+DB_SSL_REJECT_UNAUTHORIZED="true"
+# CA certificate as a string.
+DB_SSL_CA=
+# Path to a CA certificate file.
+DB_SSL_CA_FILE=
+# Private key in PEM format as a string.
+DB_SSL_KEY=
+# Path to private key in PEM format.
+DB_SSL_KEY_FILE=
+# Certificate chain in PEM format as a string.
+DB_SSL_CERT=
+# Path to certificate chain in PEM format.
+DB_SSL_CERT_FILE=
+```
+
+## Environment variable reference
+
+| Variable | Default | Required | Description |
+|---|---|---|---|
+| `DB_TYPE` | `sqlite` | No | Database engine: `sqlite` or `postgres`. |
+| `CONFIG_DIRECTORY` | `config` | No | Path to the config directory (SQLite only). |
+| `DB_HOST` | `localhost` | No | Database host (PostgreSQL TCP only). |
+| `DB_PORT` | `5432` | No | Database port (PostgreSQL TCP only). |
+| `DB_USER` | — | Yes (PostgreSQL) | Database username. |
+| `DB_PASS` | — | Yes (TCP) / No (socket) | Database password. |
+| `DB_NAME` | `seerr` | No | Database name. |
+| `DB_SOCKET_PATH` | — | Yes (socket) | Path to PostgreSQL Unix socket directory. |
+| `DB_LOG_QUERIES` | `false` | No | Log all SQL queries for debugging. |
+| `DB_USE_SSL` | `false` | No | Enable SSL for the database connection. |
+| `DB_SSL_REJECT_UNAUTHORIZED` | `true` | No | Reject unverifiable SSL certificates. |
+| `DB_SSL_CA` | — | No | CA certificate as a string. |
+| `DB_SSL_CA_FILE` | — | No | Path to CA certificate file. |
+| `DB_SSL_KEY` | — | No | Private key in PEM format as a string. |
+| `DB_SSL_KEY_FILE` | — | No | Path to private key file. |
+| `DB_SSL_CERT` | — | No | Certificate chain in PEM format as a string. |
+| `DB_SSL_CERT_FILE` | — | No | Path to certificate chain file. |
+
+## Migrating from SQLite to PostgreSQL
+
+<Steps>
+  <Step title="Set up PostgreSQL and configure Seerr">
+    Create a PostgreSQL database and user. Set `DB_TYPE=postgres` and the required connection variables in your Seerr environment.
+  </Step>
+  <Step title="Start Seerr to create the schema">
+    Start Seerr once. It will create all the necessary tables in PostgreSQL.
+  </Step>
+  <Step title="Stop Seerr">
+    Stop the Seerr application before migrating data.
+  </Step>
+  <Step title="Migrate data with pgloader">
+    Use the pgloader Docker image to transfer data from SQLite to PostgreSQL. Replace the placeholders with your actual connection details.
+
+    <Tabs>
+      <Tab title="pgloader container (recommended)">
+        <Note>
+          The most recent release of pgloader has a known issue with quoting table columns. Use this specific container image to avoid the problem.
+        </Note>
+
+        **Standalone installation (no Docker network needed):**
+
+        ```bash
+        docker run --rm \
+          -v /path/to/your/config/db.sqlite3:/db.sqlite3:ro \
+          ghcr.io/ralgar/pgloader:pr-1531 \
+          pgloader --with "quote identifiers" --with "data only" \
+          /db.sqlite3 postgresql://DB_USER:DB_PASS@DB_HOST:DB_PORT/DB_NAME
+        ```
+
+        **Docker Compose setup** (when PostgreSQL is also a container):
+
+        ```bash
+        docker run --rm \
+          --network your-seerr-network \
+          -v /path/to/your/config/db.sqlite3:/db.sqlite3:ro \
+          ghcr.io/ralgar/pgloader:pr-1531 \
+          pgloader --with "quote identifiers" --with "data only" \
+          /db.sqlite3 postgresql://DB_USER:DB_PASS@DB_HOST:DB_PORT/DB_NAME
+        ```
+      </Tab>
+      <Tab title="pgloader from source">
+        Clone and build the working version from the relevant PR:
+
+        ```bash
+        git clone https://github.com/dimitri/pgloader.git
+        cd pgloader
+        git fetch origin pull/1531/head:pr-1531
+        git checkout pr-1531
+        ```
+
+        Follow the [official pgloader INSTALL.md](https://github.com/dimitri/pgloader/blob/master/INSTALL.md) for build instructions.
+
+        Then run the migration:
+
+        ```bash
+        ./pgloader --with "quote identifiers" --with "data only" \
+          /path/to/your/config/db.sqlite3 \
+          postgresql://DB_USER:DB_PASS@DB_HOST:DB_PORT/DB_NAME
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+  <Step title="Start Seerr">
+    Start Seerr again. It will connect to PostgreSQL and your migrated data will be intact.
+  </Step>
+</Steps>

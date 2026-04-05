@@ -1,28 +1,11 @@
 {
-  "$schema": "https://mintlify.com/docs.json",
-  "name": "Seerr",
+  "projectType": "saas",
+  "projectName": "Seerr",
+  "projectDescription": "Open-source media request and discovery manager that integrates with Jellyfin, Plex, and Emby alongside Sonarr and Radarr.",
   "theme": "almond",
-  "colors": {
-    "primary": "#484b96",
-    "light": "#9e87f5",
-    "dark": "#181e31"
-  },
-  "favicon": "https://media.brand.dev/1afee7ce-f8a9-4d16-9bc0-42efffe754a7.png",
-  "logo": {
-    "light": "https://media.brand.dev/2b94e915-e0cc-42b7-a245-bc126fdefafc.svg",
-    "dark": "https://media.brand.dev/2b94e915-e0cc-42b7-a245-bc126fdefafc.svg"
-  },
-  "navbar": {
-    "primary": {
-      "type": "github",
-      "href": "https://github.com/seerr-team/seerr"
-    }
-  },
-  "footer": {
-    "socials": {
-      "github": "https://github.com/seerr-team/seerr"
-    }
-  },
+  "primaryColor": "#484b96",
+  "lightColor": "#9e87f5",
+  "darkColor": "#181e31",
   "navigation": {
     "tabs": [
       {
@@ -101,5 +84,39 @@
         ]
       }
     ]
-  }
+  },
+  "keyFeatures": [
+    "Jellyfin, Plex, and Emby integration with user import and authentication",
+    "Sonarr and Radarr integration for automatic media acquisition",
+    "Customizable media request system for movies and TV shows",
+    "Granular permission and user management system",
+    "Multi-channel notification support (Discord, Slack, Email, Telegram, Pushover, etc.)",
+    "Watchlist and blocklist management",
+    "Support for SQLite and PostgreSQL databases",
+    "Mobile-friendly responsive UI",
+    "Docker and Kubernetes deployment support",
+    "Override rules for automatic request routing"
+  ],
+  "publicApiSurface": [
+    "GET /api/v1/search",
+    "GET /api/v1/request",
+    "POST /api/v1/request",
+    "PUT /api/v1/request/{requestId}",
+    "DELETE /api/v1/request/{requestId}",
+    "GET /api/v1/movie/{movieId}",
+    "GET /api/v1/tv/{tvId}",
+    "GET /api/v1/media",
+    "GET /api/v1/user",
+    "POST /api/v1/user",
+    "GET /api/v1/settings/main",
+    "GET /api/v1/service/radarr",
+    "GET /api/v1/service/sonarr",
+    "GET /api/v1/watchlist",
+    "GET /api/v1/blocklist",
+    "GET /api/v1/auth/me",
+    "POST /api/v1/auth/local",
+    "POST /api/v1/auth/plex",
+    "GET /api/v1/discover",
+    "GET /api/v1/overrideRule"
+  ]
 }

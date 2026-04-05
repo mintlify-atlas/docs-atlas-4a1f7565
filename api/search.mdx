@@ -1,0 +1,284 @@
+---
+title: "Search"
+description: "Search for movies, TV shows, and people, and discover content through filtered browse endpoints."
+---
+
+## Search
+
+### Search movies, TV shows, and people
+
+Returns a paginated list of movies, TV shows, or people matching the query string.
+
+**`GET /search`**
+
+<ParamField query="query" type="string" required>
+  The search term.
+</ParamField>
+
+<ParamField query="page" type="number" default="1">
+  Page number of results to return.
+</ParamField>
+
+<ParamField query="language" type="string">
+  ISO 639-1 language code for localized results (e.g. `en`, `fr`).
+</ParamField>
+
+<Tabs>
+  <Tab title="curl">
+    ```bash
+    curl -X GET "http://localhost:5055/api/v1/search?query=Dune&page=1" \
+      -H "X-Api-Key: your-api-key"
+    ```
+  </Tab>
+  <Tab title="Response">
+    ```json
+    {
+      "page": 1,
+      "totalPages": 3,
+      "totalResults": 42,
+      "results": [
+        {
+          "id": 438631,
+          "mediaType": "movie",
+          "title": "Dune",
+          "originalTitle": "Dune",
+          "overview": "Paul Atreides, a brilliant and gifted young man...",
+          "releaseDate": "2021-09-15",
+          "posterPath": "/d5NXSklXo0qyIYkgV94XAgMIckC.jpg",
+          "backdropPath": "/jYEW5xZkZk2WTrdbMGAPFuBqbDc.jpg",
+          "voteAverage": 7.8,
+          "voteCount": 9800,
+          "popularity": 182.5,
+          "originalLanguage": "en",
+          "mediaInfo": {
+            "id": 1,
+            "tmdbId": 438631,
+            "status": 5
+          }
+        }
+      ]
+    }
+    ```
+  </Tab>
+</Tabs>
+
+Each result is one of:
+
+<AccordionGroup>
+  <Accordion title="MovieResult">
+    <ResponseField name="id" type="number">TMDB movie ID.</ResponseField>
+    <ResponseField name="mediaType" type="string">Always `"movie"`.</ResponseField>
+    <ResponseField name="title" type="string">Movie title.</ResponseField>
+    <ResponseField name="originalTitle" type="string">Title in the original language.</ResponseField>
+    <ResponseField name="overview" type="string">Plot synopsis.</ResponseField>
+    <ResponseField name="releaseDate" type="string">Release date (YYYY-MM-DD).</ResponseField>
+    <ResponseField name="posterPath" type="string">TMDB poster image path.</ResponseField>
+    <ResponseField name="backdropPath" type="string">TMDB backdrop image path.</ResponseField>
+    <ResponseField name="voteAverage" type="number">Average TMDB user rating.</ResponseField>
+    <ResponseField name="voteCount" type="number">Number of votes.</ResponseField>
+    <ResponseField name="popularity" type="number">TMDB popularity score.</ResponseField>
+    <ResponseField name="originalLanguage" type="string">ISO 639-1 code of the original language.</ResponseField>
+    <ResponseField name="adult" type="boolean">Whether the movie is adult-only content.</ResponseField>
+    <ResponseField name="genreIds" type="number[]">List of TMDB genre IDs.</ResponseField>
+    <ResponseField name="mediaInfo" type="object">
+      Seerr media status if the movie is tracked.
+      <Expandable title="MediaInfo fields">
+        <ResponseField name="id" type="number">Seerr media ID.</ResponseField>
+        <ResponseField name="tmdbId" type="number">TMDB ID.</ResponseField>
+        <ResponseField name="status" type="number">
+          Availability status: `1` = Unknown, `2` = Pending, `3` = Processing, `4` = Partially Available, `5` = Available, `6` = Deleted.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Accordion>
+  <Accordion title="TvResult">
+    <ResponseField name="id" type="number">TMDB TV series ID.</ResponseField>
+    <ResponseField name="mediaType" type="string">Always `"tv"`.</ResponseField>
+    <ResponseField name="name" type="string">Series name.</ResponseField>
+    <ResponseField name="originalName" type="string">Name in the original language.</ResponseField>
+    <ResponseField name="overview" type="string">Show synopsis.</ResponseField>
+    <ResponseField name="firstAirDate" type="string">First air date (YYYY-MM-DD).</ResponseField>
+    <ResponseField name="posterPath" type="string">TMDB poster image path.</ResponseField>
+    <ResponseField name="backdropPath" type="string">TMDB backdrop image path.</ResponseField>
+    <ResponseField name="voteAverage" type="number">Average TMDB user rating.</ResponseField>
+    <ResponseField name="originCountry" type="string[]">Country codes where the show originates.</ResponseField>
+    <ResponseField name="mediaInfo" type="object">Seerr media status if tracked.</ResponseField>
+  </Accordion>
+  <Accordion title="PersonResult">
+    <ResponseField name="id" type="number">TMDB person ID.</ResponseField>
+    <ResponseField name="mediaType" type="string">Always `"person"`.</ResponseField>
+    <ResponseField name="profilePath" type="string">TMDB profile photo path.</ResponseField>
+    <ResponseField name="adult" type="boolean">Whether the person is associated with adult content.</ResponseField>
+    <ResponseField name="knownFor" type="array">List of movies or TV shows the person is known for.</ResponseField>
+  </Accordion>
+</AccordionGroup>
+
+### Search keywords
+
+Returns TMDB keywords matching the search term. Useful for filtering discover results.
+
+**`GET /search/keyword`**
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/search/keyword?query=christmas" \
+  -H "X-Api-Key: your-api-key"
+```
+
+### Search companies
+
+Returns production companies matching the search term.
+
+**`GET /search/company`**
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/search/company?query=Disney" \
+  -H "X-Api-Key: your-api-key"
+```
+
+---
+
+## Discover
+
+Discover endpoints return curated or filtered lists of content without requiring a search term.
+
+### Discover movies
+
+**`GET /discover/movies`**
+
+<ParamField query="page" type="number" default="1">Page number.</ParamField>
+<ParamField query="language" type="string">ISO 639-1 language code.</ParamField>
+<ParamField query="genre" type="string">Filter by TMDB genre ID.</ParamField>
+<ParamField query="studio" type="number">Filter by production company ID.</ParamField>
+<ParamField query="keywords" type="string">Comma-separated keyword IDs to include.</ParamField>
+<ParamField query="excludeKeywords" type="string">Comma-separated keyword IDs to exclude.</ParamField>
+<ParamField query="sortBy" type="string">TMDB sort field (e.g. `popularity.desc`, `vote_average.desc`).</ParamField>
+<ParamField query="primaryReleaseDateGte" type="string">Filter: released on or after this date (YYYY-MM-DD).</ParamField>
+<ParamField query="primaryReleaseDateLte" type="string">Filter: released on or before this date (YYYY-MM-DD).</ParamField>
+<ParamField query="voteAverageGte" type="number">Minimum vote average.</ParamField>
+<ParamField query="voteAverageLte" type="number">Maximum vote average.</ParamField>
+<ParamField query="voteCountGte" type="number">Minimum vote count.</ParamField>
+<ParamField query="withRuntimeGte" type="number">Minimum runtime in minutes.</ParamField>
+<ParamField query="withRuntimeLte" type="number">Maximum runtime in minutes.</ParamField>
+<ParamField query="watchRegion" type="string">ISO 3166-1 region code for watch provider filtering.</ParamField>
+<ParamField query="watchProviders" type="string">Pipe-separated watch provider IDs (e.g. `8|9`).</ParamField>
+<ParamField query="certification" type="string">Exact certification to match (e.g. `PG-13`).</ParamField>
+<ParamField query="certificationCountry" type="string">Country for the certification system (e.g. `US`).</ParamField>
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/discover/movies?genre=28&sortBy=popularity.desc" \
+  -H "X-Api-Key: your-api-key"
+```
+
+### Discover movies by genre
+
+**`GET /discover/movies/genre/{genreId}`**
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/discover/movies/genre/28" \
+  -H "X-Api-Key: your-api-key"
+```
+
+### Discover movies by language
+
+**`GET /discover/movies/language/{language}`**
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/discover/movies/language/ja" \
+  -H "X-Api-Key: your-api-key"
+```
+
+### Discover movies by studio
+
+**`GET /discover/movies/studio/{studioId}`**
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/discover/movies/studio/420" \
+  -H "X-Api-Key: your-api-key"
+```
+
+### Upcoming movies
+
+**`GET /discover/movies/upcoming`**
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/discover/movies/upcoming" \
+  -H "X-Api-Key: your-api-key"
+```
+
+---
+
+### Discover TV shows
+
+**`GET /discover/tv`**
+
+<ParamField query="page" type="number" default="1">Page number.</ParamField>
+<ParamField query="language" type="string">ISO 639-1 language code.</ParamField>
+<ParamField query="genre" type="string">Filter by TMDB genre ID.</ParamField>
+<ParamField query="network" type="number">Filter by TV network ID.</ParamField>
+<ParamField query="keywords" type="string">Comma-separated keyword IDs to include.</ParamField>
+<ParamField query="sortBy" type="string">TMDB sort field.</ParamField>
+<ParamField query="firstAirDateGte" type="string">Filter: first aired on or after (YYYY-MM-DD).</ParamField>
+<ParamField query="firstAirDateLte" type="string">Filter: first aired on or before (YYYY-MM-DD).</ParamField>
+<ParamField query="voteAverageGte" type="number">Minimum vote average.</ParamField>
+<ParamField query="watchRegion" type="string">Region code for watch provider filtering.</ParamField>
+<ParamField query="watchProviders" type="string">Pipe-separated watch provider IDs.</ParamField>
+<ParamField query="status" type="string">Pipe-separated status codes.</ParamField>
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/discover/tv?genre=18&sortBy=popularity.desc" \
+  -H "X-Api-Key: your-api-key"
+```
+
+### Discover TV shows by genre
+
+**`GET /discover/tv/genre/{genreId}`**
+
+### Discover TV shows by network
+
+**`GET /discover/tv/network/{networkId}`**
+
+### Discover TV shows by language
+
+**`GET /discover/tv/language/{language}`**
+
+### Upcoming TV shows
+
+**`GET /discover/tv/upcoming`**
+
+---
+
+### Trending
+
+Returns trending movies and TV shows.
+
+**`GET /discover/trending`**
+
+<ParamField query="page" type="number" default="1">Page number.</ParamField>
+<ParamField query="language" type="string">ISO 639-1 language code.</ParamField>
+<ParamField query="mediaType" type="string" default="all">Filter by type: `all`, `movie`, or `tv`.</ParamField>
+<ParamField query="timeWindow" type="string" default="day">Time window: `day` or `week`.</ParamField>
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/discover/trending?timeWindow=week&mediaType=movie" \
+  -H "X-Api-Key: your-api-key"
+```
+
+### Movies by keyword
+
+**`GET /discover/keyword/{keywordId}/movies`**
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/discover/keyword/207317/movies" \
+  -H "X-Api-Key: your-api-key"
+```
+
+### Watchlist discover
+
+Returns the Plex watchlist for the current user.
+
+**`GET /discover/watchlist`**
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/discover/watchlist" \
+  -H "X-Api-Key: your-api-key"
+```

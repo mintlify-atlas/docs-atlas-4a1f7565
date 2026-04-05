@@ -1,0 +1,322 @@
+---
+title: "Third-Party Installation"
+description: "Community-maintained installation methods for Seerr on Arch Linux (AUR), TrueNAS, Unraid, and Synology."
+---
+
+<Warning>
+These installation methods are maintained by the community. The Seerr team does not maintain, test, or provide support for them. For the most reliable and supported experience, use the [official Docker installation](/getting-started/docker).
+</Warning>
+
+## AUR (Arch Linux)
+
+<Warning>
+The AUR package is intended for advanced users running Arch Linux or an Arch-based distribution.
+</Warning>
+
+Install Seerr from the Arch User Repository using an AUR helper:
+
+<Tabs>
+  <Tab title="yay">
+
+```bash
+yay -S seerr
+```
+
+  </Tab>
+  <Tab title="paru">
+
+```bash
+paru -S seerr
+```
+
+  </Tab>
+</Tabs>
+
+After installation, access the web UI at `http://[your-server-address]:5055` and complete the setup wizard.
+
+<Tip>
+The environment file is located at `/etc/conf.d/seerr` and the systemd service file is at `/etc/systemd/system/seerr.service`.
+</Tip>
+
+---
+
+## TrueNAS
+
+<Warning>
+The TrueNAS app is intended for advanced users running the TrueNAS distribution.
+</Warning>
+
+<Steps>
+  <Step title="Open the Apps menu">
+    In the TrueNAS web interface, navigate to **Apps**.
+  </Step>
+  <Step title="Search for Seerr">
+    Click the **Discover Apps** button in the top-right corner and search for **Seerr**.
+  </Step>
+  <Step title="Install">
+    Select Seerr from the results and follow the installation prompts.
+  </Step>
+</Steps>
+
+---
+
+## Unraid
+
+<Warning>
+The Unraid template is intended for advanced users. If you are new to Unraid, use the community template instead of installing manually.
+</Warning>
+
+### Using a community template
+
+Several ready-made templates are available through [Unraid Community Apps](https://unraid.net/community/apps#community-apps-iframe). Search for **Seerr** in Community Apps to find and install a template directly.
+
+### Manual installation
+
+Before proceeding, choose the permission model that suits your setup:
+
+- **Seerr Default (`UID 1000:1000`)** — runs with the container's native `node` user, matching the official image. May cause issues with SMB share access, "Fix Common Problems" warnings, and some backup or network plugins.
+- **Unraid Default (`UID 99:100`)** — runs with Unraid's native `nobody:users` ownership, following Unraid best practices. Overrides Seerr's built-in rootless user and may cause compatibility issues with future Seerr updates.
+
+<Tabs>
+  <Tab title="Seerr Default (UID 1000:1000)">
+
+<Steps>
+  <Step title="Create the config directory">
+
+    Open the Unraid terminal and run:
+
+    ```bash
+    mkdir -p /mnt/user/appdata/seerr
+    ```
+
+  </Step>
+  <Step title="Set folder permissions">
+
+    ```bash
+    chown -R 1000:1000 /mnt/user/appdata/seerr
+    ```
+
+  </Step>
+  <Step title="Add the Docker container">
+
+    Navigate to the **Docker** tab in Unraid and click **Add Container**. Fill in the following fields:
+
+    | Field | Value |
+    |---|---|
+    | **Name** | `seerr` |
+    | **Repository** | `ghcr.io/seerr-team/seerr:latest` |
+    | **Icon URL** | `https://raw.githubusercontent.com/seerr-team/seerr/develop/public/android-chrome-512x512.png` |
+    | **WebUI** | `http://[IP]:[PORT:5055]` |
+    | **Extra Parameters** | `--init --restart=unless-stopped` |
+    | **Network Type** | `bridge` |
+    | **Privileged** | `Off` |
+
+    <Warning>
+    The **Extra Parameters** field is required. Without `--init`, the container will not handle signals properly or shut down cleanly. Without `--restart=unless-stopped`, the container will not restart after a reboot. To see this field, click **Basic View** in the top-right corner of the template page to switch to the advanced editor.
+    </Warning>
+
+    Click **Add another Path, Port, Variable** to add the following:
+
+    **Port:**
+
+    | Field | Value |
+    |---|---|
+    | Container Port | `5055` |
+    | Host Port | `5055` |
+    | Connection Type | `TCP` |
+
+    **Path:**
+
+    | Field | Value |
+    |---|---|
+    | Container Path | `/app/config` |
+    | Host Path | `/mnt/user/appdata/seerr` |
+
+    **Variable:**
+
+    | Field | Value |
+    |---|---|
+    | Key | `TZ` |
+    | Value | Your [TZ database name](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) (e.g., `America/New_York`) |
+
+    **Variable (optional):**
+
+    | Field | Value |
+    |---|---|
+    | Key | `LOG_LEVEL` |
+    | Value | `info` |
+
+    Click **Apply** to create and start the container.
+
+  </Step>
+  <Step title="Access Seerr">
+    Open `http://<your-unraid-ip>:5055` and follow the setup wizard.
+  </Step>
+</Steps>
+
+  </Tab>
+  <Tab title="Unraid Default (UID 99:100)">
+
+<Steps>
+  <Step title="Create the config directory">
+
+    Open the Unraid terminal and run:
+
+    ```bash
+    mkdir -p /mnt/user/appdata/seerr
+    ```
+
+  </Step>
+  <Step title="Set folder permissions">
+
+    ```bash
+    chown -R 99:100 /mnt/user/appdata/seerr
+    ```
+
+  </Step>
+  <Step title="Add the Docker container">
+
+    Navigate to the **Docker** tab in Unraid and click **Add Container**. Fill in the following fields:
+
+    | Field | Value |
+    |---|---|
+    | **Name** | `seerr` |
+    | **Repository** | `ghcr.io/seerr-team/seerr:latest` |
+    | **Icon URL** | `https://raw.githubusercontent.com/seerr-team/seerr/develop/public/android-chrome-512x512.png` |
+    | **WebUI** | `http://[IP]:[PORT:5055]` |
+    | **Extra Parameters** | `--init --restart=unless-stopped --user 99:100` |
+    | **Network Type** | `bridge` |
+    | **Privileged** | `Off` |
+
+    <Warning>
+    The **Extra Parameters** field is required. `--init` ensures clean signal handling, `--restart=unless-stopped` enables auto-restart after reboot, and `--user 99:100` runs the container process with Unraid's default UID/GID to avoid permission errors on your shares. To see this field, click **Basic View** in the top-right corner to switch to the advanced editor.
+    </Warning>
+
+    Click **Add another Path, Port, Variable** to add the following:
+
+    **Port:**
+
+    | Field | Value |
+    |---|---|
+    | Container Port | `5055` |
+    | Host Port | `5055` |
+    | Connection Type | `TCP` |
+
+    **Path:**
+
+    | Field | Value |
+    |---|---|
+    | Container Path | `/app/config` |
+    | Host Path | `/mnt/user/appdata/seerr` |
+
+    **Variable:**
+
+    | Field | Value |
+    |---|---|
+    | Key | `TZ` |
+    | Value | Your [TZ database name](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) (e.g., `America/New_York`) |
+
+    **Variable (optional):**
+
+    | Field | Value |
+    |---|---|
+    | Key | `LOG_LEVEL` |
+    | Value | `info` |
+
+    Click **Apply** to create and start the container.
+
+  </Step>
+  <Step title="Access Seerr">
+    Open `http://<your-unraid-ip>:5055` and follow the setup wizard.
+  </Step>
+</Steps>
+
+  </Tab>
+</Tabs>
+
+---
+
+## Synology
+
+<Warning>
+The Synology package is intended for advanced users running Synology NAS with DSM 7.2 or later.
+</Warning>
+
+### Prerequisites
+
+- Synology NAS running **DSM 7.2** or later
+- 64-bit architecture (x86\_64 or ARMv8)
+- [SynoCommunity](https://synocommunity.com/) package source added to Package Center
+
+### Add the SynoCommunity package source
+
+If you have not already added SynoCommunity to Package Center:
+
+<Steps>
+  <Step title="Open Package Center settings">
+    Open **Package Center** in DSM, click **Settings** in the top-right corner, and go to the **Package Sources** tab.
+  </Step>
+  <Step title="Add the source">
+    Click **Add** and enter:
+
+    - **Name:** `SynoCommunity`
+    - **Location:** `https://packages.synocommunity.com`
+
+    Click **OK**.
+  </Step>
+</Steps>
+
+### Install Seerr
+
+<Steps>
+  <Step title="Search for Seerr">
+    In **Package Center**, search for **Seerr**.
+  </Step>
+  <Step title="Install">
+    Click **Install** and follow the installation wizard. Package Center will automatically install Node.js v22 if it is not already present.
+  </Step>
+  <Step title="Access Seerr">
+    Once installed, open Seerr at `http://<your-synology-ip>:5055`. You can also click **Open** in Package Center or find Seerr in the DSM main menu.
+  </Step>
+</Steps>
+
+### Configuration
+
+Seerr's configuration files are stored at:
+
+```
+/var/packages/seerr/var/config
+```
+
+<Info>
+The Seerr package runs as a dedicated service user managed by DSM. No manual permission configuration is required.
+</Info>
+
+### Managing the service
+
+Start, stop, and restart Seerr from **Package Center** → find **Seerr** → use the action buttons.
+
+### Updating
+
+<Steps>
+  <Step title="Open Package Center">
+    Go to **Installed** packages.
+  </Step>
+  <Step title="Update Seerr">
+    Find **Seerr** and click **Update** if an update is available.
+  </Step>
+</Steps>
+
+<Tip>
+Enable automatic updates in Package Center settings to keep Seerr up to date automatically.
+</Tip>
+
+### Synology troubleshooting
+
+**Viewing logs:** Seerr logs are at `/var/packages/seerr/var/config/logs`. Access them using the File Browser package or via SSH.
+
+**Port conflicts:** Seerr uses port 5055. If another Docker container is using this port, remap the conflicting container. If another package is using it, it will need to be uninstalled — Seerr's port cannot be changed in the SynoCommunity package.
+
+**Package won't start:** Ensure Node.js v22 is installed and running by checking its status in **Package Center**.
+
+**Uninstalling:** Open **Package Center**, find **Seerr**, and click **Uninstall**. This removes the application but preserves your configuration data by default. Select **Remove data** during uninstallation if you want a complete removal.

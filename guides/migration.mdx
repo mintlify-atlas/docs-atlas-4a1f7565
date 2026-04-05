@@ -1,0 +1,305 @@
+---
+title: "Migrating from Overseerr / Jellyseerr"
+description: "How to migrate your existing Overseerr or Jellyseerr instance to Seerr."
+---
+
+Whether you are coming from Overseerr or Jellyseerr, Seerr automatically migrates your data the first time it starts. No manual database migration steps are required. The migration runs automatically regardless of your installation method (Docker, Kubernetes, source build, etc.). Overseerr users get an additional migration pass to update their configuration to the new format.
+
+<Warning>
+  **Back up your existing instance before proceeding.** If something goes wrong during migration you will need your backup to roll back. See [Backups & Restore](/guides/backups) for instructions.
+</Warning>
+
+<Info>
+  Installation methods are divided into **official** (maintained by the Seerr team) and **third-party** (maintained by the community). The Seerr team is only responsible for official installation methods.
+
+  **Snap package:** Not currently maintained.
+</Info>
+
+## Docker
+
+Refer to the [Docker installation documentation](/getting-started/docker) for the full updated examples. The key changes from Jellyseerr or Overseerr are:
+
+- All references to `overseerr` or `jellyseerr` have been renamed to `seerr`.
+- The container image is now `ghcr.io/seerr-team/seerr:latest`.
+- The container now runs as the `node` user (non-root). Remove any `user` directive you previously set.
+- The container no longer includes an init process — you must add `init: true` (Docker Compose) or `--init` (Docker CLI).
+
+Available image tags:
+
+| Tag | Description |
+|---|---|
+| `latest` | Most recent stable release. |
+| `v3.0.0` (version tags) | Specific stable versions. |
+| `develop` | Rolling nightly builds — use with caution. |
+
+### Config folder permissions
+
+Since the container now runs as the `node` user (UID 1000), your config directory must be owned by that user.
+
+If you are migrating from a previous installation, update the ownership of your config folder:
+
+```bash
+docker run --rm -v /path/to/appdata/config:/data alpine chown -R 1000:1000 /data
+```
+
+### Unix
+
+<Tabs>
+  <Tab title="Docker Compose">
+    ```yaml
+    ---
+    services:
+      seerr:
+        image: ghcr.io/seerr-team/seerr:latest
+        init: true
+        container_name: seerr
+        environment:
+          - LOG_LEVEL=debug
+          - TZ=Asia/Tashkent
+          - PORT=5055 #optional
+        ports:
+          - 5055:5055
+        volumes:
+          - /path/to/appdata/config:/app/config
+        healthcheck:
+          test: wget --no-verbose --tries=1 --spider http://localhost:5055/api/v1/status || exit 1
+          start_period: 20s
+          timeout: 3s
+          interval: 15s
+          retries: 3
+        restart: unless-stopped
+    ```
+  </Tab>
+  <Tab title="Docker CLI">
+    ```bash
+    docker run -d \
+      --name seerr \
+      --init \
+      -e LOG_LEVEL=debug \
+      -e TZ=Asia/Tashkent \
+      -e PORT=5055 \
+      -p 5055:5055 \
+      -v /path/to/appdata/config:/app/config \
+      --restart unless-stopped \
+      ghcr.io/seerr-team/seerr:latest
+    ```
+  </Tab>
+</Tabs>
+
+### Windows
+
+<Tabs>
+  <Tab title="Docker Compose">
+    ```yaml
+    ---
+    services:
+      seerr:
+        image: ghcr.io/seerr-team/seerr:latest
+        init: true
+        container_name: seerr
+        environment:
+          - LOG_LEVEL=debug
+          - TZ=Asia/Tashkent
+        ports:
+          - 5055:5055
+        volumes:
+          - seerr-data:/app/config
+        healthcheck:
+          test: wget --no-verbose --tries=1 --spider http://localhost:5055/api/v1/status || exit 1
+          start_period: 20s
+          timeout: 3s
+          interval: 15s
+          retries: 3
+        restart: unless-stopped
+
+    volumes:
+      seerr-data:
+        external: true
+    ```
+  </Tab>
+  <Tab title="Docker CLI (PowerShell)">
+    ```powershell
+    docker run -d `
+      --name seerr `
+      --init `
+      -e LOG_LEVEL=debug `
+      -e TZ=Asia/Tashkent `
+      -e PORT=5055 `
+      -p 5055:5055 `
+      -v seerr-data:/app/config `
+      --restart unless-stopped `
+      ghcr.io/seerr-team/seerr:latest
+    ```
+  </Tab>
+  <Tab title="Docker CLI (CMD)">
+    ```batch
+    docker run -d ^
+      --name seerr ^
+      --init ^
+      -e LOG_LEVEL=debug ^
+      -e TZ=Asia/Tashkent ^
+      -e PORT=5055 ^
+      -p 5055:5055 ^
+      -v seerr-data:/app/config ^
+      --restart unless-stopped ^
+      ghcr.io/seerr-team/seerr:latest
+    ```
+  </Tab>
+</Tabs>
+
+## Build from source
+
+Refer to the [build from source documentation](/getting-started/buildfromsource).
+
+Install Seerr from scratch following that guide, then restore your data as described in [Backups & Restore](/guides/backups). No additional steps are needed — Seerr will auto-migrate your data on first start.
+
+## Kubernetes
+
+Refer to the [Kubernetes documentation](/getting-started/kubernetes). The key changes are:
+
+- All `jellyseerr` references in manifests have been renamed to `seerr`.
+- The container image reference has been updated.
+- The default `securityContext` and `podSecurityContext` have been updated to support running without root.
+
+<Tabs>
+  <Tab title="Old values">
+    ```yaml
+    image:
+      repository: fallenbagel/jellyseerr
+    podSecurityContext: {}
+    securityContext: {}
+    ```
+  </Tab>
+  <Tab title="New values">
+    ```yaml
+    image:
+      repository: seerr-team/seerr
+    podSecurityContext:
+      fsGroup: 1000
+      fsGroupChangePolicy: OnRootMismatch
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+      readOnlyRootFilesystem: false
+      runAsNonRoot: true
+      privileged: false
+      runAsUser: 1000
+      runAsGroup: 1000
+      seccompProfile:
+        type: RuntimeDefault
+    ```
+  </Tab>
+</Tabs>
+
+## Nix
+
+Refer to the [Nix documentation](/getting-started/nixpkg).
+
+The `seerr` service and package are available in the unstable channel and will be officially included in the 26.05 release.
+
+---
+
+## Third-party installation methods
+
+<Warning>
+  Third-party installation methods are maintained by the community. The Seerr team is not responsible for these packages.
+</Warning>
+
+### AUR
+
+See [https://aur.archlinux.org/packages/seerr](https://aur.archlinux.org/packages/seerr).
+
+### TrueNAS
+
+Refer to the [third-party installation documentation](/support/third-party-install).
+
+<Tabs>
+  <Tab title="Host path storage">
+    Use this method if your existing Jellyseerr or Overseerr instance was configured with **Host Path** storage (not ixVolume).
+
+    <Steps>
+      <Step title="Stop Jellyseerr or Overseerr">
+        Stop the existing app from the TrueNAS apps interface.
+      </Step>
+      <Step title="Install Seerr with the same host path">
+        Install the Seerr app and point it to the same Host Path directory that was used by Jellyseerr or Overseerr.
+      </Step>
+      <Step title="Start Seerr">
+        Start the Seerr app. It will auto-migrate your data on first boot.
+      </Step>
+      <Step title="Delete the old app">
+        Once Seerr is confirmed working, delete the Jellyseerr or Overseerr app.
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="ixVolume storage">
+    Use this method if your existing instance was configured with **ixVolume** storage (not Host Path).
+
+    <Steps>
+      <Step title="Stop Jellyseerr or Overseerr">
+        Stop the existing app from the TrueNAS apps interface.
+      </Step>
+      <Step title="Create a dataset for Seerr">
+        If your apps store data under a path like `/mnt/storage/<app-name>`, create a new dataset:
+
+        ```
+        storage/seerr
+        ```
+
+        This results in the path `/mnt/storage/seerr`.
+      </Step>
+      <Step title="Copy the ixVolume data">
+        Open **System Settings → Shell** or SSH into your TrueNAS server as root, then run:
+
+        ```bash
+        rsync -av /mnt/.ix-apps/app_mounts/jellyseerr/ /mnt/storage/seerr/
+        ```
+      </Step>
+      <Step title="Install Seerr with the new host path">
+        Install the Seerr app and set the Host Path to the dataset you just created (e.g., `/mnt/storage/seerr/config`).
+      </Step>
+      <Step title="Start Seerr">
+        Start the Seerr app. It will auto-migrate your data on first boot.
+      </Step>
+      <Step title="Delete the old app">
+        Once Seerr is confirmed working, delete the Jellyseerr or Overseerr app.
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+### Unraid
+
+Refer to the [third-party installation documentation](/support/third-party-install).
+
+Seerr automatically migrates your existing Overseerr or Jellyseerr data on first startup. No manual database migration is needed.
+
+<Steps>
+  <Step title="Stop the existing container">
+    In the Unraid **Docker** tab, stop your Overseerr or Jellyseerr container.
+
+    <Warning>
+      Do not remove the container or delete the appdata folder yet.
+    </Warning>
+  </Step>
+  <Step title="Copy existing data to the Seerr appdata directory">
+    Open the Unraid terminal and copy your existing appdata into the new Seerr directory:
+
+    ```bash
+    cp -a /mnt/user/appdata/overseerr /mnt/user/appdata/seerr
+    ```
+
+    For Jellyseerr, replace `overseerr` with `jellyseerr` in the paths.
+  </Step>
+  <Step title="Set permissions and install Seerr">
+    Follow the [Unraid Installation Guide](/support/third-party-install#unraid), starting from **step 2**, to set correct folder permissions and add the Docker container. The guide offers two permission methods — read the descriptions before choosing.
+  </Step>
+  <Step title="Start the Seerr container">
+    Start the Seerr container and check the logs to confirm the automatic migration completed successfully.
+  </Step>
+  <Step title="Remove the old app">
+    Once you have confirmed Seerr is working and your data has migrated, remove the old Overseerr or Jellyseerr container from Unraid.
+  </Step>
+</Steps>

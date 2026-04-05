@@ -1,0 +1,229 @@
+---
+title: "Notifications"
+description: "Configure notification agents so Seerr can alert you and your users about requests, approvals, and availability."
+---
+
+Seerr can send notifications through a variety of agents when requests are submitted, approved, declined, or become available. Configure agents in **Settings → Notifications**.
+
+Users can also configure personal notification preferences from their own user profile, choosing which events to be notified about and through which agents.
+
+## Supported agents
+
+<CardGroup cols={2}>
+  <Card title="Email" icon="envelope">
+    Send notifications via SMTP to any email address.
+  </Card>
+  <Card title="Web Push" icon="browser">
+    Native browser push notifications — no app required.
+  </Card>
+  <Card title="Discord" icon="discord">
+    Post notifications to a Discord channel via webhook.
+  </Card>
+  <Card title="Slack" icon="slack">
+    Post notifications to a Slack channel via incoming webhook.
+  </Card>
+  <Card title="Telegram" icon="paper-plane">
+    Send notifications to a Telegram chat via a bot.
+  </Card>
+  <Card title="Pushover" icon="bell">
+    Push notifications to Pushover-compatible devices.
+  </Card>
+  <Card title="Pushbullet" icon="bolt">
+    Push notifications via Pushbullet to your devices or a channel.
+  </Card>
+  <Card title="Gotify" icon="server">
+    Self-hosted push notifications via a Gotify server.
+  </Card>
+  <Card title="ntfy" icon="megaphone">
+    Self-hosted or public push notifications via ntfy.
+  </Card>
+  <Card title="Webhook" icon="webhook">
+    Send a custom JSON payload to any HTTP endpoint.
+  </Card>
+</CardGroup>
+
+## Agent setup
+
+<AccordionGroup>
+  <Accordion title="Email">
+    Configure email notifications in **Settings → Notifications → Email**.
+
+    <Info>
+      If you have set an [Application URL](/configuration/general#application-url), Seerr will explicitly identify itself when connecting to your SMTP host.
+    </Info>
+
+    | Setting | Description |
+    |---|---|
+    | **Sender name** (optional) | Friendly name shown in the "from" field (e.g., `Seerr`). |
+    | **Sender address** | The email address used in the "from" field. Some providers (e.g., Gmail) require this to be an address you own. |
+    | **SMTP host** | Hostname or IP address of your SMTP server. |
+    | **SMTP port** | Port for your SMTP server. `465` and `587` are common. |
+    | **Encryption method** | Use **Implicit TLS** for port 465 or **STARTTLS** for port 587. Refer to your provider's documentation. |
+    | **SMTP username & password** | Credentials to authenticate with your SMTP server. If your account uses two-factor authentication, you may need an app-specific password. |
+    | **PGP private key & password** (optional) | Enable OpenPGP signing and encryption. Individual users must also have their PGP public keys configured in their user settings. |
+  </Accordion>
+
+  <Accordion title="Web Push">
+    <Warning>
+      Web Push requires a secure (HTTPS) connection to your Seerr instance. See the [Reverse Proxy](/guides/reverse-proxy) guide for setup instructions.
+    </Warning>
+
+    Web Push delivers notifications directly to supported browsers — no app or external service required. The agent does not need any configuration beyond being enabled.
+
+    To enable it, go to **Settings → Notifications → Web Push** and toggle the agent on.
+
+    Users enable web push for themselves in **User Profile → Edit Settings → Notifications → Web Push**.
+
+    <Info>
+      **Mobile users:** Add Seerr to your home screen as a PWA to receive web push notifications on mobile.
+
+      **iOS users:** You may need to enable the notifications feature flag in **Settings → Safari → Advanced → Feature Flags**.
+    </Info>
+  </Accordion>
+
+  <Accordion title="Discord">
+    Configure Discord notifications in **Settings → Notifications → Discord**.
+
+    | Setting | Description |
+    |---|---|
+    | **Webhook URL** | Create a webhook in Discord at **Server Settings → Integrations → Webhooks** and paste the URL here. |
+    | **Notification role ID** (optional) | If set, this role is mentioned in webhook messages. Find role IDs in Discord's developer mode. |
+    | **Bot username** (optional) | Override the display name configured for your webhook. |
+    | **Bot avatar URL** (optional) | Override the avatar image for your webhook. |
+
+    <Info>
+      Users can opt in to being mentioned in Discord notifications by setting their **Discord user ID** in their user settings.
+    </Info>
+  </Accordion>
+
+  <Accordion title="Slack">
+    Configure Slack notifications in **Settings → Notifications → Slack**.
+
+    | Setting | Description |
+    |---|---|
+    | **Webhook URL** | Create an incoming webhook for your Slack workspace and paste the URL here. |
+
+    Refer to the [Slack API documentation](https://api.slack.com/messaging/webhooks) for details on creating incoming webhooks.
+  </Accordion>
+
+  <Accordion title="Telegram">
+    Configure Telegram notifications in **Settings → Notifications → Telegram**.
+
+    <Info>
+      You must first [create a Telegram bot](https://telegram.me/BotFather). Bots cannot initiate conversations, so users must start a chat with your bot before they can receive personal notifications.
+    </Info>
+
+    | Setting | Description |
+    |---|---|
+    | **Bot username** (optional) | If set, users can click a link to start a chat with your bot and configure personal notifications. Omit the `@` prefix; the username should end with `_bot`. |
+    | **Bot authentication token** | Provided by @BotFather at the end of the bot creation process. |
+    | **Chat ID** | Add [@get_id_bot](https://telegram.me/get_id_bot) to a group chat and run `/my_id` to retrieve the ID. |
+    | **Send silently** (optional) | When enabled, notifications are delivered without sound. |
+
+    Users can configure personal Telegram notifications from their user settings.
+  </Accordion>
+
+  <Accordion title="Pushover">
+    Configure Pushover notifications in **Settings → Notifications → Pushover**.
+
+    | Setting | Description |
+    |---|---|
+    | **Application/API token** | [Register an application](https://pushover.net/apps/build) on Pushover and enter the generated API token. |
+    | **User key** | Your Pushover user key. You can also use a group key to deliver notifications to multiple users. |
+
+    Users can configure personal Pushover notifications from their user settings.
+  </Accordion>
+
+  <Accordion title="Pushbullet">
+    Configure Pushbullet notifications in **Settings → Notifications → Pushbullet**.
+
+    | Setting | Description |
+    |---|---|
+    | **Access token** | [Generate an access token](https://www.pushbullet.com/#settings) in your Pushbullet account settings. |
+    | **Channel tag** (optional) | [Create a Pushbullet channel](https://www.pushbullet.com/my-channel) and enter its tag here to allow users to subscribe to notifications. |
+
+    Users can configure personal Pushbullet notifications from their user settings.
+  </Accordion>
+
+  <Accordion title="Gotify">
+    Configure Gotify notifications in **Settings → Notifications → Gotify**.
+
+    | Setting | Description |
+    |---|---|
+    | **Server URL** | The URL of your Gotify server. |
+    | **Application token** | Add an application in Gotify and paste the generated token here. |
+
+    Refer to the [Gotify documentation](https://gotify.net/docs) for details.
+  </Accordion>
+
+  <Accordion title="ntfy">
+    Configure ntfy notifications in **Settings → Notifications → ntfy**.
+
+    | Setting | Description |
+    |---|---|
+    | **Server root URL** | The URL of your ntfy server (e.g., `https://ntfy.sh` for the public instance). |
+    | **Topic** | The ntfy topic to publish notifications to. |
+    | **Username & password** (optional) | Credentials if your ntfy server requires authentication. |
+    | **Token** (optional) | Token-based authentication alternative to username/password. |
+    | **Priority** (optional) | Notification priority from Minimum (1) to Urgent (5). Higher priorities may bypass Do Not Disturb settings on some devices. |
+
+    Refer to the [ntfy documentation](https://docs.ntfy.sh/) for details.
+  </Accordion>
+
+  <Accordion title="Webhook">
+    Configure webhook notifications in **Settings → Notifications → Webhook**.
+
+    The webhook agent sends a JSON payload to any HTTP endpoint you specify, allowing integration with any service that accepts webhooks.
+
+    | Setting | Description |
+    |---|---|
+    | **Webhook URL** | The endpoint Seerr posts the JSON body to. |
+    | **Authorization header** (optional) | Sent as an `Authorization` HTTP header. Check your provider's documentation — this is often not needed. |
+    | **Custom headers** (optional) | Additional HTTP headers to include with each request. Useful for API keys or custom auth schemes. |
+    | **JSON payload** | The request body. Use [template variables](#webhook-template-variables) to include dynamic data. |
+
+    <Warning>
+      You cannot configure both the **Authorization header** field and a custom `Authorization` entry in **Custom Headers** at the same time. Use one or the other.
+    </Warning>
+
+    ### Webhook template variables
+
+    Use these variables in your JSON payload. Seerr replaces them with real values when a notification is triggered.
+
+    **General**
+
+    | Variable | Value |
+    |---|---|
+    | `{{notification_type}}` | Notification type, e.g. `MEDIA_PENDING` or `ISSUE_COMMENT` |
+    | `{{event}}` | Friendly description of the event |
+    | `{{subject}}` | Notification subject (usually the media title) |
+    | `{{message}}` | Notification body (media overview for requests; issue description for issues) |
+    | `{{image}}` | Notification image (usually the media poster) |
+
+    **Notify user** (the recipient of the notification)
+
+    | Variable | Value |
+    |---|---|
+    | `{{notifyuser_username}}` | Recipient's username |
+    | `{{notifyuser_email}}` | Recipient's email address |
+    | `{{notifyuser_avatar}}` | Recipient's avatar URL |
+    | `{{notifyuser_settings_discordId}}` | Recipient's Discord ID (if set) |
+    | `{{notifyuser_settings_telegramChatId}}` | Recipient's Telegram Chat ID (if set) |
+
+    **Special objects** (use as keys in the JSON payload, e.g. `"{{extra}}": []`)
+
+    | Variable | Value |
+    |---|---|
+    | `{{media}}` | The relevant media object |
+    | `{{request}}` | The relevant request object |
+    | `{{issue}}` | The relevant issue object |
+    | `{{comment}}` | The relevant issue comment object |
+    | `{{extra}}` | Array of additional data (e.g., season/episode numbers) |
+  </Accordion>
+</AccordionGroup>
+
+## User notification preferences
+
+Each user can customize which notification events they receive and through which agents. Users access these settings from their user profile under **Edit Settings → Notifications**.
+
+Administrators can also configure notification preferences on behalf of users from the **User List → Edit** form.

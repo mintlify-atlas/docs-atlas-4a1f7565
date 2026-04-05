@@ -1,0 +1,145 @@
+---
+title: "Users & Permissions"
+description: "Manage user accounts, roles, and permissions in Seerr, including importing users from your media server."
+---
+
+Seerr supports two types of users: the **owner** account (created during setup) and regular users, who can be imported from your media server or created locally. Manage users from **Settings → Users** and the **User List** page.
+
+## The owner account
+
+The account created during initial setup is the owner account. It cannot be deleted or modified by other users. For Jellyfin and Emby, this account's authentication token is used for API access to your media server.
+
+<Tip>
+  If your authentication token is ever invalidated or changed, you can refresh it by re-authenticating with your media server from the Seerr setup flow.
+</Tip>
+
+## User roles
+
+Seerr has two main roles:
+
+- **Admin** — Full access to all settings and the ability to approve, decline, or manage any request. Admins can also manage other users and their permissions (except other admin accounts).
+- **Standard user** — Can browse and submit requests, subject to the permissions and request limits assigned to them.
+
+## Adding users
+
+There are two ways to add users to Seerr.
+
+### Importing from your media server
+
+<Tabs>
+  <Tab title="Jellyfin">
+    On the **User List** page, click **Import Jellyfin Users**. Seerr fetches users from your Jellyfin server and adds them automatically.
+
+    Importing is optional. Any Jellyfin user can sign in to Seerr even without being imported — they receive the configured [default permissions](#default-permissions) on first login.
+
+    <Tip>
+      To prevent automatic sign-ins, go to **Settings → Users** and disable **Enable New Jellyfin Sign-In**.
+    </Tip>
+  </Tab>
+  <Tab title="Emby">
+    On the **User List** page, click **Import Emby Users**. Seerr fetches users from your Emby server and adds them automatically.
+
+    Importing is optional. Any Emby user can sign in to Seerr even without being imported — they receive the configured [default permissions](#default-permissions) on first login.
+
+    <Tip>
+      To prevent automatic sign-ins, go to **Settings → Users** and disable **Enable New Emby Sign-In**.
+    </Tip>
+  </Tab>
+  <Tab title="Plex">
+    On the **User List** page, click **Import Plex Users**. Seerr fetches users from plex.tv who have access to your Plex server and adds them automatically.
+
+    Importing is optional. Any Plex user with server access can sign in to Seerr even without being imported — they receive the configured [default permissions](#default-permissions) on first login.
+
+    <Tip>
+      To prevent automatic sign-ins, go to **Settings → Users** and disable **Enable New Plex Sign-In**.
+    </Tip>
+  </Tab>
+</Tabs>
+
+### Creating local users
+
+If you want to grant Seerr access to someone who doesn't have a media server account, click **Create Local User** on the **User List** page.
+
+Provide a valid **email address** for the account. You can either set a password manually (minimum 8 characters) or have Seerr generate one automatically — provided you have configured an [Application URL](/configuration/general#application-url) and [email notifications](/configuration/notifications#email).
+
+## Editing users
+
+From the **User List**, click **Edit** next to any user to modify their settings. You can also select multiple users and click **Bulk Edit** to update permissions for several accounts at once.
+
+### Display name
+
+Optionally set a friendly name that Seerr displays in place of the user's media server username or email address.
+
+### Email
+
+Used for notifications, local sign-in, and password resets. Users imported from Jellyfin or Emby use their media server username as their email by default. This field cannot be left blank.
+
+<Note>
+  The email field is read-only for users imported from Plex.
+</Note>
+
+### Display language
+
+Users can override the [global display language](/configuration/general#display-language) and view Seerr in their preferred language.
+
+### Discover region and language
+
+Users can override the [global discover settings](/configuration/general#discover-region-discover-language--streaming-region) to filter content to their own preferences.
+
+### Request limits
+
+You can set per-user movie and series request limits by enabling **Override** and selecting a limit and time period. Without an override, users are subject to the global request limits configured in **Settings → Users**.
+
+Users with the **Manage Users** permission are exempt from request limits.
+
+### Password
+
+All local users have passwords. Users imported from Plex can also configure a password to enable email-based sign-in. Passwords must be at least 8 characters.
+
+### Notifications
+
+Each user can configure personal notification preferences from their user profile. See [Notifications](/configuration/notifications) for details on the available agents.
+
+## Permission system
+
+Permissions control what each user can do in Seerr. You set them per user in the **Permissions** tab of the edit user form.
+
+Users cannot modify their own permissions. Users with the **Manage Users** permission can edit other users' permissions, but cannot modify admin accounts.
+
+Key permissions include:
+
+- **Request** — Allows the user to submit requests.
+- **Auto-Approve** — Requests from this user are automatically approved without admin review.
+- **Manage Requests** — Allows the user to approve, decline, or delete any request.
+- **Manage Users** — Allows the user to add, edit, and import other users. Users with this permission are exempt from request limits.
+- **Admin** — Full access. Admin users cannot have their permissions modified by non-admin users.
+
+## Global user settings
+
+Configure global defaults in **Settings → Users**.
+
+### Enable local sign-in
+
+When enabled, users who have set passwords can sign in with their email address. When disabled, only media server OAuth sign-in is available.
+
+This setting is **enabled** by default.
+
+### Enable media server sign-in
+
+When enabled, users can sign in using their Jellyfin, Emby, or Plex credentials. When disabled, only email/password sign-in is available.
+
+This setting is **enabled** by default.
+
+### Enable new media server sign-in
+
+When enabled, users with access to your media server can sign in to Seerr even if they have not been imported. They are automatically assigned the [default permissions](#default-permissions) on first login.
+
+This setting is **enabled** by default.
+
+### Global movie and series request limits
+
+Set the default request limits for all users. Individual limits can be overridden per user.
+
+### Default permissions
+
+Select the permissions automatically assigned to new users on account creation or first login. This setting only affects new users — existing users are not changed.

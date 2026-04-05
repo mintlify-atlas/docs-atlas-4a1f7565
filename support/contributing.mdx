@@ -1,0 +1,256 @@
+---
+title: "Contributing"
+description: "How to contribute code, translations, and documentation to the Seerr project."
+---
+
+All help is welcome and greatly appreciated. This page covers how to set up a development environment, the conventions the project follows, and how to submit good pull requests.
+
+## AI assistance policy
+
+<Warning>
+Automated AI-generated contributions submitted without human review are not allowed and will be rejected.
+
+While using AI tools as an aid is acceptable, it is your responsibility to ensure all submissions are carefully reviewed and meet the project's quality standards. **We expect AI-assisted development, not AI-driven development.**
+
+Contributors who repeatedly submit unreviewed AI output may be banned.
+</Warning>
+
+Signs of unreviewed AI output that will result in rejection include:
+
+- Blank or template-default PR descriptions
+- AI-generated PR descriptions that replace the PR template with their own structure (e.g., "Summary / What changed / Root cause / Test plan")
+- Unchecked checklists or a missing checklist entirely
+- Failing CI checks that would have been caught by running `pnpm build`
+- Code that does not match the described changes
+- Inability to answer questions about the submitted code
+
+### Disclosure requirements
+
+If you use any AI assistance while contributing to Seerr, **you must disclose this in the pull request description**, along with the extent of AI use (e.g., docs only vs. code generation). If AI is generating your review responses or comments, disclose that too.
+
+Trivial tab-completion of single keywords or short phrases does not need to be disclosed.
+
+Example disclosures:
+
+> **AI Disclosure:** This PR was written primarily by Claude Code.
+
+> **AI Disclosure:** I consulted ChatGPT to understand the codebase but the solution was fully authored manually by myself.
+
+> **AI Disclosure:** None.
+
+When using AI assistance, you are expected to:
+
+- Understand the code produced and be able to answer questions about it.
+- Follow the contributing guide — AI tools do not excuse you from filling out the PR template, testing section, and checklist.
+- Run the build and tests before submitting.
+
+---
+
+## Setting up your development environment
+
+### Required tools
+
+- A code editor — [VSCode](https://code.visualstudio.com/) is recommended. Opening the project will suggest relevant extensions automatically.
+- [Node.js](https://nodejs.org/en/download/) (version 22.x)
+- [pnpm](https://pnpm.io/cli/install)
+- [Git](https://git-scm.com/downloads)
+
+### Getting started
+
+<Steps>
+  <Step title="Fork and clone the repository">
+
+    [Fork](https://help.github.com/articles/fork-a-repo/) the repository to your own GitHub account, then clone it locally:
+
+    ```bash
+    git clone https://github.com/YOUR_USERNAME/seerr.git
+    cd seerr/
+    ```
+
+  </Step>
+  <Step title="Add the upstream remote">
+
+    ```bash
+    git remote add upstream https://github.com/seerr-team/seerr.git
+    ```
+
+  </Step>
+  <Step title="Create a branch">
+
+    Always branch from `develop`, not `master`:
+
+    ```bash
+    git switch -c BRANCH_NAME develop
+    ```
+
+    Use a meaningful branch name that describes the work:
+
+    | Good | Bad |
+    |---|---|
+    | `docs-docker` | `docs` |
+    | `feature-new-system` | `feature` |
+    | `fix-title-cards` | `fix` |
+
+  </Step>
+  <Step title="Start the development server">
+
+    ```bash
+    pnpm install
+    pnpm dev
+    ```
+
+    Alternatively, use Docker (no local Node.js installation required):
+
+    ```bash
+    docker compose up -d
+    ```
+
+  </Step>
+  <Step title="Make and test your changes">
+
+    Follow the [code style](#code-style) and [UI text](#ui-text-style) guidelines. To keep your branch up to date with upstream, rebase from `develop`:
+
+    ```bash
+    git fetch upstream
+    git rebase upstream/develop
+    git push origin BRANCH_NAME -f
+    ```
+
+  </Step>
+</Steps>
+
+---
+
+## Code style
+
+- Your code **must** be formatted correctly or CI will fail.
+- The project uses [Prettier](https://prettier.io/) for formatting. It runs automatically via a Git hook, but it is recommended to install the Prettier extension in your editor and enable format-on-save.
+- Pull request titles must follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/). PR titles are automatically checked for compliance and non-compliant PRs will not be merged.
+- Make meaningful commits, or squash them before opening a pull request. Do not squash once a review is in progress.
+- Always rebase your branch to the latest `develop` before submitting. PRs that are not rebased will not be merged.
+
+---
+
+## UI text style
+
+When adding or modifying UI text:
+
+1. Be concise and clear. Use as few words as possible.
+2. Use the Oxford comma where appropriate.
+3. Use the appropriate Unicode characters for ellipses, arrows, and other special characters.
+4. Capitalize proper nouns: Plex, Radarr, Sonarr, Telegram, Slack, Pushover, etc. Use official capitalization for abbreviations — IMDb has a lowercase 'b', while TMDB and TheTVDB have a capital 'B'.
+5. Title case headings, button text, and form labels. Capitalize verbs like "is"; lowercase prepositions like "from" (unless first or last word).
+6. Capitalize the first word in validation error messages, dropdowns, and form tips. These strings should not end in punctuation.
+7. Toast notification strings should be complete sentences ending in punctuation.
+8. Use the global CSS class `label-tip` for form field descriptions or tips.
+9. Do not abbreviate words like "info" or "auto" in full sentences unless the setting itself uses the abbreviation.
+10. Check for spelling errors and grammatical mistakes.
+11. Do not misspell "Seerr."
+
+---
+
+## Submitting a pull request
+
+- Before opening a PR, comment on the relevant [GitHub issue](https://github.com/seerr-team/seerr/issues) to avoid duplicate work.
+- Open all pull requests to the `develop` branch. Pull requests to `master` will be closed.
+- You can open a draft pull request early to get feedback.
+- Keep your PR focused. A PR that claims to fix one thing but touches unrelated code will be rejected.
+- You must be able to handle review feedback yourself. If you cannot discuss or implement requested changes without routing reviewer comments through an AI, the PR will be closed.
+- Do not commit editor configs, AI tool directories, or other local tooling files.
+
+---
+
+## Database migrations
+
+If your feature requires a database schema change, you must create two migration files: one for SQLite and one for PostgreSQL.
+
+<Steps>
+  <Step title="Start a PostgreSQL database">
+
+    ```bash
+    sudo docker run --name postgres-seerr \
+      -e POSTGRES_PASSWORD=postgres \
+      -d -p 127.0.0.1:5432:5432/tcp postgres:latest
+    ```
+
+  </Step>
+  <Step title="Reset both databases">
+
+    ```bash
+    rm config/db/db.*
+    rm config/settings.*
+    PGPASSWORD=postgres sudo docker exec -it postgres-seerr \
+      /usr/bin/psql -h 127.0.0.1 -U postgres -c "DROP DATABASE IF EXISTS seerr;"
+    PGPASSWORD=postgres sudo docker exec -it postgres-seerr \
+      /usr/bin/psql -h 127.0.0.1 -U postgres -c "CREATE DATABASE seerr;"
+    ```
+
+  </Step>
+  <Step title="Create the baseline databases on develop">
+
+    ```bash
+    git switch develop
+    pnpm i
+    rm -r .next dist; pnpm build
+    pnpm start
+    DB_TYPE="postgres" DB_USER=postgres DB_PASS=postgres pnpm start
+    ```
+
+    You can stop the server once you see "Server ready on 5055".
+
+  </Step>
+  <Step title="Generate the migrations">
+
+    ```bash
+    git switch -c your-feature-branch
+    pnpm i
+    pnpm migration:generate server/migration/sqlite/YourMigrationName
+    DB_TYPE="postgres" DB_USER=postgres DB_PASS=postgres \
+      pnpm migration:generate server/migration/postgres/YourMigrationName
+    ```
+
+  </Step>
+</Steps>
+
+---
+
+## Helm chart contributions
+
+Additional tools required:
+
+- [Helm](https://helm.sh/docs/intro/install/)
+- [helm-docs](https://github.com/norwoodj/helm-docs)
+
+<Steps>
+  <Step title="Make your changes">
+    Edit the Helm chart files as needed.
+  </Step>
+  <Step title="Test your changes">
+    Verify the chart renders and installs correctly.
+  </Step>
+  <Step title="Update the chart version">
+    Update the `version` field in `charts/seerr-chart/Chart.yaml` following [Semantic Versioning (SemVer)](https://semver.org/).
+  </Step>
+  <Step title="Regenerate the chart README">
+
+    ```bash
+    helm-docs
+    ```
+
+  </Step>
+</Steps>
+
+---
+
+## Translations
+
+Seerr uses [Weblate](https://translate.seerr.dev/projects/seerr/seerr-frontend/) for translations. If your language is not listed, [open a feature request](https://github.com/seerr-team/seerr/issues/new/choose).
+
+---
+
+## Community channels
+
+If you have questions or need help, you can reach the community through:
+
+- [GitHub Discussions](https://github.com/seerr-team/seerr/discussions)
+- [Discord server](https://discord.gg/seerr)

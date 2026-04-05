@@ -1,0 +1,458 @@
+---
+title: "Settings"
+description: "Read and update Seerr configuration, notification agents, and background jobs."
+---
+
+All settings endpoints require authentication. Most require `ADMIN` permissions.
+
+---
+
+## Main settings
+
+### Get main settings
+
+Returns all main application settings.
+
+**`GET /settings/main`**
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/settings/main" \
+  -H "X-Api-Key: your-api-key"
+```
+
+```json
+{
+  "apiKey": "your-api-key",
+  "appLanguage": "en",
+  "applicationTitle": "Seerr",
+  "applicationUrl": "https://seerr.example.com",
+  "hideAvailable": false,
+  "partialRequestsEnabled": true,
+  "localLogin": true,
+  "mediaServerType": 1,
+  "newPlexLogin": true,
+  "defaultPermissions": 32,
+  "enableSpecialEpisodes": false
+}
+```
+
+**MainSettings fields:**
+
+<ResponseField name="apiKey" type="string">
+  Your Seerr API key (read-only).
+</ResponseField>
+
+<ResponseField name="appLanguage" type="string">
+  Default UI language code (e.g. `en`).
+</ResponseField>
+
+<ResponseField name="applicationTitle" type="string">
+  Custom title displayed in the UI.
+</ResponseField>
+
+<ResponseField name="applicationUrl" type="string">
+  Externally accessible URL of this Seerr instance.
+</ResponseField>
+
+<ResponseField name="hideAvailable" type="boolean">
+  When `true`, available media is hidden from the discover page.
+</ResponseField>
+
+<ResponseField name="partialRequestsEnabled" type="boolean">
+  When `true`, users can request specific seasons rather than full series.
+</ResponseField>
+
+<ResponseField name="localLogin" type="boolean">
+  When `true`, local email/password login is enabled.
+</ResponseField>
+
+<ResponseField name="mediaServerType" type="number">
+  Connected media server type: `1` = Plex, `2` = Jellyfin/Emby.
+</ResponseField>
+
+<ResponseField name="defaultPermissions" type="number">
+  Default permissions bitmask assigned to new users.
+</ResponseField>
+
+---
+
+### Update main settings
+
+**`POST /settings/main`**
+
+```bash
+curl -X POST "http://localhost:5055/api/v1/settings/main" \
+  -H "X-Api-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationTitle": "My Media Server",
+    "applicationUrl": "https://requests.example.com",
+    "hideAvailable": true,
+    "defaultPermissions": 32
+  }'
+```
+
+---
+
+### Regenerate API key
+
+Generates a new API key and returns updated main settings.
+
+**`POST /settings/main/regenerate`**
+
+```bash
+curl -X POST "http://localhost:5055/api/v1/settings/main/regenerate" \
+  -H "X-Api-Key: your-api-key"
+```
+
+<Warning>
+  After regenerating, your current API key is immediately invalidated. Update all integrations with the new key returned in the response.
+</Warning>
+
+---
+
+## Background jobs
+
+### List all jobs
+
+Returns all scheduled background jobs and their next execution time.
+
+**`GET /settings/jobs`**
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/settings/jobs" \
+  -H "X-Api-Key: your-api-key"
+```
+
+```json
+[
+  {
+    "id": "plex-recently-added-scan",
+    "type": "process",
+    "interval": "short",
+    "name": "Plex Recently Added Scan",
+    "nextExecutionTime": "2024-03-01T12:05:00.000Z",
+    "running": false
+  }
+]
+```
+
+**Job fields:**
+
+<ResponseField name="id" type="string">
+  Unique job identifier used in job management endpoints.
+</ResponseField>
+
+<ResponseField name="type" type="string">
+  `"process"` or `"command"`.
+</ResponseField>
+
+<ResponseField name="interval" type="string">
+  Scheduling tier: `"short"`, `"long"`, or `"fixed"`.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Human-readable job name.
+</ResponseField>
+
+<ResponseField name="nextExecutionTime" type="string">
+  ISO 8601 timestamp of the next scheduled run.
+</ResponseField>
+
+<ResponseField name="running" type="boolean">
+  Whether the job is currently executing.
+</ResponseField>
+
+---
+
+### Run a job manually
+
+Triggers a job to run immediately.
+
+**`POST /settings/jobs/{jobId}/run`**
+
+```bash
+curl -X POST "http://localhost:5055/api/v1/settings/jobs/plex-recently-added-scan/run" \
+  -H "X-Api-Key: your-api-key"
+```
+
+---
+
+### Cancel a running job
+
+Cancels a job that is currently running.
+
+**`POST /settings/jobs/{jobId}/cancel`**
+
+```bash
+curl -X POST "http://localhost:5055/api/v1/settings/jobs/plex-recently-added-scan/cancel" \
+  -H "X-Api-Key: your-api-key"
+```
+
+---
+
+### Reschedule a job
+
+Changes the cron schedule for a job.
+
+**`POST /settings/jobs/{jobId}/schedule`**
+
+<ParamField body="schedule" type="string" required>
+  A cron expression (e.g. `"0 */5 * * * *"` for every 5 minutes).
+</ParamField>
+
+```bash
+curl -X POST "http://localhost:5055/api/v1/settings/jobs/plex-recently-added-scan/schedule" \
+  -H "X-Api-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"schedule": "0 */10 * * * *"}'
+```
+
+---
+
+## Notification settings
+
+Each notification agent has its own GET/POST pair at `/settings/notifications/{agent}`, plus a POST endpoint at `/settings/notifications/{agent}/test` to send a test notification.
+
+| Agent | Endpoint path |
+|-------|--------------|
+| Email | `/settings/notifications/email` |
+| Discord | `/settings/notifications/discord` |
+| Slack | `/settings/notifications/slack` |
+| Telegram | `/settings/notifications/telegram` |
+| Pushbullet | `/settings/notifications/pushbullet` |
+| Pushover | `/settings/notifications/pushover` |
+| Gotify | `/settings/notifications/gotify` |
+| ntfy | `/settings/notifications/ntfy` |
+| Web Push | `/settings/notifications/webpush` |
+| Webhook | `/settings/notifications/webhook` |
+
+### Get notification settings (example: Discord)
+
+**`GET /settings/notifications/discord`**
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/settings/notifications/discord" \
+  -H "X-Api-Key: your-api-key"
+```
+
+```json
+{
+  "enabled": true,
+  "types": 2,
+  "options": {
+    "webhookUrl": "https://discord.com/api/webhooks/...",
+    "botUsername": "Seerr",
+    "enableMentions": false
+  }
+}
+```
+
+### Update notification settings (example: Discord)
+
+**`POST /settings/notifications/discord`**
+
+```bash
+curl -X POST "http://localhost:5055/api/v1/settings/notifications/discord" \
+  -H "X-Api-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "enabled": true,
+    "types": 2,
+    "options": {
+      "webhookUrl": "https://discord.com/api/webhooks/your-webhook-url",
+      "enableMentions": true
+    }
+  }'
+```
+
+### Test a notification agent
+
+**`POST /settings/notifications/{agent}/test`**
+
+Returns `204 No Content` after attempting to send a test notification.
+
+```bash
+curl -X POST "http://localhost:5055/api/v1/settings/notifications/discord/test" \
+  -H "X-Api-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "enabled": true,
+    "types": 2,
+    "options": {
+      "webhookUrl": "https://discord.com/api/webhooks/your-webhook-url"
+    }
+  }'
+```
+
+---
+
+## Discover sliders
+
+### Get all sliders
+
+**`GET /settings/discover`**
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/settings/discover" \
+  -H "X-Api-Key: your-api-key"
+```
+
+### Batch update sliders
+
+**`POST /settings/discover`**
+
+### Add a slider
+
+**`POST /settings/discover/add`**
+
+### Update a slider
+
+**`PUT /settings/discover/{sliderId}`**
+
+### Delete a slider
+
+**`DELETE /settings/discover/{sliderId}`**
+
+### Reset all sliders
+
+**`GET /settings/discover/reset`**
+
+---
+
+## Cache management
+
+### Get cache stats
+
+**`GET /settings/cache`**
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/settings/cache" \
+  -H "X-Api-Key: your-api-key"
+```
+
+### Flush a cache
+
+**`POST /settings/cache/{cacheId}/flush`**
+
+```bash
+curl -X POST "http://localhost:5055/api/v1/settings/cache/tmdb/flush" \
+  -H "X-Api-Key: your-api-key"
+```
+
+---
+
+## Server logs
+
+Returns server log entries with optional filtering.
+
+**`GET /settings/logs`**
+
+<ParamField query="take" type="number">Number of entries to return.</ParamField>
+<ParamField query="skip" type="number">Number of entries to skip.</ParamField>
+<ParamField query="filter" type="string" default="debug">Log level: `debug`, `info`, `warn`, `error`.</ParamField>
+<ParamField query="search" type="string">Search log messages by text.</ParamField>
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/settings/logs?filter=error&take=50" \
+  -H "X-Api-Key: your-api-key"
+```
+
+---
+
+## Server stats
+
+Returns overall statistics about your Seerr instance.
+
+**`GET /settings/about`**
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/settings/about" \
+  -H "X-Api-Key: your-api-key"
+```
+
+```json
+{
+  "version": "1.0.0",
+  "totalRequests": 1250,
+  "totalMediaItems": 840,
+  "tz": "America/New_York",
+  "appDataPath": "/app/config"
+}
+```
+
+---
+
+## Network settings
+
+### Get network settings
+
+**`GET /settings/network`**
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/settings/network" \
+  -H "X-Api-Key: your-api-key"
+```
+
+**NetworkSettings fields:**
+
+<ResponseField name="csrfProtection" type="boolean">
+  When `true`, CSRF protection is enabled for the application.
+</ResponseField>
+
+<ResponseField name="forceIpv4First" type="boolean">
+  When `true`, DNS resolution prefers IPv4 addresses over IPv6.
+</ResponseField>
+
+<ResponseField name="trustProxy" type="boolean">
+  When `true`, Seerr trusts the `X-Forwarded-For` header set by a reverse proxy.
+</ResponseField>
+
+<ResponseField name="proxy" type="object">
+  HTTP(S) proxy configuration.
+  <Expandable title="Proxy fields">
+    <ResponseField name="enabled" type="boolean">Whether the proxy is active.</ResponseField>
+    <ResponseField name="hostname" type="string">Proxy server hostname.</ResponseField>
+    <ResponseField name="port" type="number">Proxy server port.</ResponseField>
+    <ResponseField name="useSsl" type="boolean">Whether to use HTTPS for the proxy connection.</ResponseField>
+    <ResponseField name="user" type="string">Proxy authentication username.</ResponseField>
+    <ResponseField name="password" type="string">Proxy authentication password.</ResponseField>
+    <ResponseField name="bypassFilter" type="string">Comma-separated list of hosts to bypass the proxy.</ResponseField>
+    <ResponseField name="bypassLocalAddresses" type="boolean">When `true`, local addresses bypass the proxy.</ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Update network settings
+
+**`POST /settings/network`**
+
+```bash
+curl -X POST "http://localhost:5055/api/v1/settings/network" \
+  -H "X-Api-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "trustProxy": true,
+    "forceIpv4First": false,
+    "proxy": {
+      "enabled": false
+    }
+  }'
+```
+
+---
+
+## Public status
+
+Returns the initialization status of the Seerr instance. This endpoint requires no authentication and is used for health checks.
+
+**`GET /api/v1/status`**
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/status"
+```
+
+```json
+{
+  "initialized": true
+}
+```

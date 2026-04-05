@@ -1,0 +1,72 @@
+---
+title: "General Settings"
+description: "Configure global Seerr settings including your API key, application URL, display language, image caching, and content filters."
+---
+
+General settings control the global behavior of your Seerr instance. Configure them in **Settings → General**.
+
+## API key
+
+Seerr generates an API key you can use to integrate with third-party applications. Do not share this key publicly — it grants administrator-level access to your instance.
+
+To regenerate the key, click the button to the right of the key field. You can also set a specific key value by providing the `API_KEY` environment variable at startup; whatever value you set becomes the active API key.
+
+## Application title
+
+By default, Seerr displays its own name throughout the UI. If you prefer a different name, set it here. The value you enter replaces "Seerr" in page titles and other visible areas.
+
+## Application URL
+
+Set this to the externally accessible URL of your Seerr instance (e.g., `https://requests.myserver.com`).
+
+<Warning>
+  You must configure this setting to enable password reset and account generation emails. Without it, those email flows will not work.
+</Warning>
+
+## Enable image caching
+
+When enabled, Seerr proxies and caches images from external sources such as TMDB. Cached images are stored in `config/cache/images` and stale files are purged every 24 hours.
+
+<Note>
+  Image caching can use a significant amount of disk space depending on your library size. Enable it if you experience issues loading images directly from TMDB in your browser.
+</Note>
+
+## Display language
+
+Set the default language for the Seerr UI. Individual users can override this in their own user settings.
+
+## Discover region, discover language, and streaming region
+
+These settings filter the content shown on the **Discover** home page:
+
+- **Discover region** — Filters content by regional availability.
+- **Discover language** — Filters content by original language.
+- **Streaming region** — Filters the streaming providers shown on media detail pages.
+
+Users can override all three of these settings in their own user settings.
+
+## Blocklist content with tags
+
+Enter one or more tags to automatically blocklist any movies or TV shows matching those tags. The **Process Blocklisted Tags** job adds matching entries to the blocklist. If you remove a tag, media blocklisted under it is removed from the blocklist the next time the job runs.
+
+The **limit** setting controls how many pages per tag the job processes, with each page containing 20 entries. The job cycles through all 16 available discovery sort options, so higher limits produce a more accurate blocklist at the cost of additional storage.
+
+Blocklisted tags are inactive until at least one tag is entered, and they cannot be overridden in user settings.
+
+## Hide available media
+
+When enabled, media that is already available in your library is hidden from the **Discover** home page and from the **Recommended** and **Similar** sections on media detail pages. Available media still appears in search results.
+
+This setting is **disabled** by default.
+
+## Hide blocklisted items
+
+When enabled, blocklisted media is hidden from the **Discover** home page for all administrators. This is useful when you want to suppress content you have blocklisted from your own view.
+
+This setting is **disabled** by default.
+
+## Allow partial series requests
+
+When enabled, users can request specific seasons of a TV series individually. When disabled, users must request all unavailable seasons at once.
+
+This setting is **enabled** by default.

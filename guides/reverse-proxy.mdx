@@ -1,0 +1,277 @@
+---
+title: "Reverse proxy"
+description: "Configure Nginx, Caddy, Traefik, Apache2, or HAProxy as a reverse proxy in front of Seerr."
+---
+
+Running Seerr behind a reverse proxy lets you serve it over HTTPS on port 443, use a custom domain, and integrate it with your existing web infrastructure.
+
+<Warning>
+  Seerr does not support base URL configuration. Only **subdomain** configurations are officially supported (e.g., `seerr.example.com`).
+
+  Subfolder configurations (e.g., `example.com/seerr`) are provided as unsupported workarounds only. They may break after a Seerr update.
+</Warning>
+
+## Nginx
+
+<Tabs>
+  <Tab title="Subdomain">
+    Add the following configuration to a new file `/etc/nginx/sites-available/seerr.example.com.conf`:
+
+    ```nginx
+    server {
+        listen 80;
+        server_name seerr.example.com;
+        return 301 https://$server_name$request_uri;
+    }
+
+    server {
+        listen 443 ssl http2;
+        server_name seerr.example.com;
+
+        ssl_certificate /etc/letsencrypt/live/seerr.example.com/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/seerr.example.com/privkey.pem;
+
+        proxy_set_header Referer $http_referer;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Real-Port $remote_port;
+        proxy_set_header X-Forwarded-Host $host:$remote_port;
+        proxy_set_header X-Forwarded-Server $host;
+        proxy_set_header X-Forwarded-Port $remote_port;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Ssl on;
+
+        location / {
+            proxy_pass http://127.0.0.1:5055;
+        }
+    }
+    ```
+
+    Then create a symlink to enable the site:
+
+    ```bash
+    sudo ln -s /etc/nginx/sites-available/seerr.example.com.conf /etc/nginx/sites-enabled/seerr.example.com.conf
+    ```
+
+    Reload Nginx to apply the changes:
+
+    ```bash
+    sudo nginx -s reload
+    ```
+  </Tab>
+  <Tab title="Subfolder (unsupported)">
+    <Warning>
+      This subfolder configuration is an unsupported workaround. The sub_filter rewrite rules may stop working when Seerr is updated. If you encounter issues, you may be asked to reproduce them without this proxy configuration before receiving support.
+    </Warning>
+
+    Add the following `location` block to your existing `nginx.conf`:
+
+    ```nginx
+    location ^~ /seerr {
+        set $app 'seerr';
+
+        # Remove /seerr path to pass to the app
+        rewrite ^/seerr/?(.*)$ /$1 break;
+        proxy_pass http://127.0.0.1:5055; # NO TRAILING SLASH
+
+        # Redirect location headers
+        proxy_redirect ^ /$app;
+        proxy_redirect /setup /$app/setup;
+        proxy_redirect /login /$app/login;
+
+        # Sub filters to replace hardcoded paths
+        proxy_set_header Accept-Encoding "";
+        sub_filter_once off;
+        sub_filter_types *;
+        sub_filter 'href="/"' 'href="/$app"';
+        sub_filter 'href="/login"' 'href="/$app/login"';
+        sub_filter 'href:"/"' 'href:"/$app"';
+        sub_filter '\/_next' '\/$app\/_next';
+        sub_filter '/_next' '/$app/_next';
+        sub_filter '/api/v1' '/$app/api/v1';
+        sub_filter '/login/plex/loading' '/$app/login/plex/loading';
+        sub_filter '/images/' '/$app/images/';
+        sub_filter '/imageproxy/' '/$app/imageproxy/';
+        sub_filter '/avatarproxy/' '/$app/avatarproxy/';
+        sub_filter '/android-' '/$app/android-';
+        sub_filter '/apple-' '/$app/apple-';
+        sub_filter '/favicon' '/$app/favicon';
+        sub_filter '/logo_' '/$app/logo_';
+        sub_filter '/site.webmanifest' '/$app/site.webmanifest';
+    }
+    ```
+  </Tab>
+  <Tab title="SWAG">
+    [SWAG (Secure Web Application Gateway)](https://github.com/linuxserver/docker-swag) includes a sample proxy configuration for Seerr. Note that this page is the authoritative source — the SWAG configuration may not always be up to date. If you find an inconsistency, [report it to the LinuxServer team](https://github.com/linuxserver/reverse-proxy-confs/issues/new) or [submit a pull request](https://github.com/linuxserver/reverse-proxy-confs/pulls).
+
+    To use the bundled configuration, rename `seerr.subdomain.conf.sample` in the `proxy-confs` folder to `seerr.subdomain.conf`.
+
+    Alternatively, create `seerr.subdomain.conf` in `proxy-confs` with the following content:
+
+    ```nginx
+    server {
+        listen 443 ssl http2;
+        listen [::]:443 ssl http2;
+
+        server_name seerr.*;
+
+        include /config/nginx/ssl.conf;
+
+        client_max_body_size 0;
+
+        location / {
+            include /config/nginx/proxy.conf;
+            resolver 127.0.0.11 valid=30s;
+            set $upstream_app seerr;
+            set $upstream_port 5055;
+            set $upstream_proto http;
+            proxy_pass $upstream_proto://$upstream_app:$upstream_port;
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="Nginx Proxy Manager">
+    Add a new proxy host with the following settings.
+
+    **Details:**
+
+    - **Domain Names:** Your desired external hostname, e.g. `seerr.example.com`
+    - **Scheme:** `http`
+    - **Forward Hostname / IP:** Internal Seerr hostname or IP
+    - **Forward Port:** `5055`
+    - **Cache Assets:** yes
+    - **Block Common Exploits:** yes
+
+    **SSL:**
+
+    - **SSL Certificate:** Select an option — if unsure, choose **Request a new SSL Certificate**
+    - **Force SSL:** yes
+    - **HTTP/2 Support:** yes
+
+    Click **Save** and **Apply Changes**.
+  </Tab>
+</Tabs>
+
+## Caddy (v2)
+
+Create a `Caddyfile` with the following content:
+
+```caddyfile
+seerr.example.com {
+    reverse_proxy http://127.0.0.1:5055
+}
+```
+
+Deploy the Caddyfile:
+
+```bash
+sudo caddy run --config /path/to/Caddyfile
+```
+
+<Note>
+  Caddy automatically obtains and renews SSL certificates for your domain via Let's Encrypt.
+</Note>
+
+## Traefik (v2)
+
+Add the following labels to the Seerr service in your `compose.yaml`:
+
+```yaml
+labels:
+  - 'traefik.enable=true'
+  ## HTTP Routers
+  - 'traefik.http.routers.seerr-rtr.entrypoints=https'
+  - 'traefik.http.routers.seerr-rtr.rule=Host(`seerr.domain.com`)'
+  - 'traefik.http.routers.seerr-rtr.tls=true'
+  ## HTTP Services
+  - 'traefik.http.routers.seerr-rtr.service=seerr-svc'
+  - 'traefik.http.services.seerr-svc.loadbalancer.server.port=5055'
+```
+
+For more information, refer to the [Traefik documentation](https://doc.traefik.io/traefik/user-guides/docker-compose/basic-example/).
+
+## Apache2
+
+<Tabs>
+  <Tab title="Subdomain">
+    Add the following block to your existing Apache2 virtual host configuration:
+
+    ```apache
+    # Seerr
+    ProxyPreserveHost On
+    ProxyPass / http://localhost:5055 retry=0 connectiontimeout=5 timeout=30 keepalive=on
+    ProxyPassReverse http://localhost:5055 /
+    RequestHeader set Connection ""
+    ```
+  </Tab>
+  <Tab title="Subfolder (unsupported)">
+    <Warning>
+      This Apache2 subfolder configuration is an unsupported workaround. The rewrite rules may stop working after a Seerr update.
+    </Warning>
+
+    Add the following `Location` block to your existing Apache2 virtual host configuration. Replace `FQDN` with your domain.
+
+    ```apache
+    # Seerr
+    # We will use "/seerr" as subfolder
+    # You can replace it with any that you like
+    <Location /seerr>
+        ProxyPreserveHost On
+        ProxyPass http://localhost:5055 retry=0 connectiontimeout=5 timeout=30 keepalive=on
+        ProxyPassReverse http://localhost:5055
+        RequestHeader set Connection ""
+
+        # Header update, to support subfolder
+        # Please Replace "FQDN" with your domain
+        Header edit location ^/login https://FQDN/seerr/login
+        Header edit location ^/setup https://FQDN/seerr/setup
+
+        AddOutputFilterByType INFLATE;SUBSTITUTE text/html application/javascript application/json
+        SubstituteMaxLineLength 2000K
+        # This is HTML and JS update
+        # Please update "/seerr" if needed
+        Substitute "s|href=\"|href=\"/seerr|inq"
+        Substitute "s|src=\"|src=\"/seerr|inq"
+        Substitute "s|/api/|/seerr/api/|inq"
+        Substitute "s|\"/_next/|\"/seerr/_next/|inq"
+        # This is JSON update
+        Substitute "s|\"/avatarproxy/|\"/seerr/avatarproxy/|inq"
+    </Location>
+    ```
+  </Tab>
+</Tabs>
+
+## HAProxy (v3)
+
+<Warning>
+  This is a community-maintained configuration. The Seerr team cannot provide support for HAProxy setups.
+</Warning>
+
+Add the following frontend and backend configuration for your Seerr instance:
+
+```haproxy
+frontend seerr-frontend
+  bind 0.0.0.0:80
+  bind 0.0.0.0:443 ssl crt /etc/ssl/private/seerr.example.com.pem
+  mode http
+  log global
+  option httplog
+  option http-keep-alive
+  http-request set-header X-Real-IP %[src]
+  option forwardfor
+  acl seerr hdr(host) -i seerr.example.com
+  redirect scheme https code 301 if !{ ssl_fc }
+  use_backend seerr-backend if seerr
+
+backend seerr-backend
+  mode http
+  log global
+  option httplog
+  http-response set-header Strict-Transport-Security max-age=15552000
+  option httpchk GET /api/v1/status
+  timeout connect 30000
+  timeout server 30000
+  retries 3
+  server seerr 127.0.0.1:5055 check inter 1000
+```

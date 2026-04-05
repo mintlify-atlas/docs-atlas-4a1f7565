@@ -1,0 +1,142 @@
+---
+title: "Kubernetes"
+description: "Install Seerr on Kubernetes using the official Helm chart."
+---
+
+<Warning>
+  This method is intended for advanced users who are already running Kubernetes. For most users, [Docker](/getting-started/docker) is the recommended installation method.
+</Warning>
+
+<Note>
+  All official Seerr Helm charts are cryptographically signed and include a verified [Software Bill of Materials (SBOM)](https://cyclonedx.org/). To verify that the chart you are using is authentic and unmodified, see the [Verifying Signed Artifacts](/advanced/verifying-signed-artifacts) guide.
+</Note>
+
+## Installation
+
+Install the Seerr Helm chart from the GitHub Container Registry:
+
+```bash
+helm install seerr oci://ghcr.io/seerr-team/seerr/seerr-chart
+```
+
+The chart requires Kubernetes `>=1.23.0`. The full list of configurable values is available in the [chart README](https://github.com/seerr-team/seerr/tree/main/charts/seerr-chart).
+
+### Verifying the chart signature
+
+Use [cosign](https://docs.sigstore.dev/cosign/system_config/installation/) to verify the chart signature. Replace `[tag]` with the chart version you want to verify:
+
+```bash
+cosign verify ghcr.io/seerr-team/seerr/seerr-chart:[tag] \
+  --certificate-identity=https://github.com/seerr-team/seerr/.github/workflows/helm.yml@refs/heads/main \
+  --certificate-oidc-issuer=https://token.actions.githubusercontent.com
+```
+
+## Configuration
+
+Seerr is a stateful application and is not designed to run with multiple replicas. The Helm chart deploys it as a `StatefulSet`.
+
+### Security context
+
+The chart runs Seerr as a non-root user by default. The default security context settings are:
+
+```yaml values.yaml
+podSecurityContext:
+  fsGroup: 1000
+  fsGroupChangePolicy: OnRootMismatch
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  privileged: false
+  runAsUser: 1000
+  runAsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+```
+
+### Volume configuration
+
+The chart creates a `PersistentVolumeClaim` to store Seerr's configuration. The default persistence settings are:
+
+```yaml values.yaml
+config:
+  persistence:
+    size: 5Gi
+    accessModes:
+      - ReadWriteOnce
+    annotations: {}
+    name: ""
+    volumeName: ""
+    existingClaim: ""
+```
+
+To use an existing PVC, set `config.persistence.existingClaim` to the name of the claim. When set, the chart will not create a new PVC.
+
+### Health checks
+
+The chart configures liveness and readiness probes against the `/api/v1/status` endpoint:
+
+```yaml values.yaml
+probes:
+  livenessProbe:
+    initialDelaySeconds: 20
+    periodSeconds: 15
+    timeoutSeconds: 3
+  readinessProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 15
+    timeoutSeconds: 3
+```
+
+### Environment variables
+
+Pass extra environment variables to the Seerr pods using `extraEnv`:
+
+```yaml values.yaml
+extraEnv:
+  - name: TZ
+    value: America/New_York
+  - name: LOG_LEVEL
+    value: debug
+```
+
+To load environment variables from a Kubernetes `Secret` or `ConfigMap`, use `extraEnvFrom`:
+
+```yaml values.yaml
+extraEnvFrom:
+  - secretRef:
+      name: seerr-secrets
+```
+
+### Ingress
+
+Ingress is disabled by default. To enable it:
+
+```yaml values.yaml
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  hosts:
+    - host: seerr.example.com
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls:
+    - secretName: seerr-tls
+      hosts:
+        - seerr.example.com
+```
+
+## Upgrading
+
+### From 2.x to 3.x
+
+In version 3.0.0, the chart was rebranded from `jellyseerr` to `seerr`. No values changes are required. See the [migration guide](/guides/migration) for details.
+
+### From 2.6.x to 2.7.x
+
+Version 2.7.0 replaced the `Deployment` with a `StatefulSet` and removed the `replicaCount` value. If you previously set `replicaCount`, remove it from your values before upgrading.

@@ -1,0 +1,411 @@
+---
+title: "Users"
+description: "List, create, update, and delete user accounts, and manage per-user settings."
+---
+
+## User object
+
+<ResponseField name="id" type="integer">
+  Unique user ID.
+</ResponseField>
+
+<ResponseField name="email" type="string">
+  User's email address.
+</ResponseField>
+
+<ResponseField name="username" type="string">
+  Display name.
+</ResponseField>
+
+<ResponseField name="plexUsername" type="string">
+  Plex username, if a Plex account is linked.
+</ResponseField>
+
+<ResponseField name="userType" type="integer">
+  `1` = local account, `2` = Jellyfin/Emby, `3` = Plex.
+</ResponseField>
+
+<ResponseField name="permissions" type="number">
+  Bitmask of the user's permissions.
+</ResponseField>
+
+<ResponseField name="avatar" type="string">
+  URL of the user's avatar image.
+</ResponseField>
+
+<ResponseField name="requestCount" type="number">
+  Total number of requests submitted by this user.
+</ResponseField>
+
+<ResponseField name="createdAt" type="string">
+  ISO 8601 timestamp of account creation.
+</ResponseField>
+
+<ResponseField name="updatedAt" type="string">
+  ISO 8601 timestamp of last update.
+</ResponseField>
+
+---
+
+## List users
+
+Returns all user accounts. Requires `MANAGE_USERS`.
+
+**`GET /user`**
+
+<ParamField query="take" type="number">
+  Number of results to return.
+</ParamField>
+
+<ParamField query="skip" type="number">
+  Number of results to skip.
+</ParamField>
+
+<ParamField query="sort" type="string" default="created">
+  Sort field: `created`, `updated`, `requests`, `displayname`, `usertype`, `role`.
+</ParamField>
+
+<ParamField query="sortDirection" type="string">
+  Sort direction: `asc` or `desc`.
+</ParamField>
+
+<ParamField query="q" type="string">
+  Filter by username or email (search query).
+</ParamField>
+
+<Tabs>
+  <Tab title="curl">
+    ```bash
+    curl -X GET "http://localhost:5055/api/v1/user?sort=requests&take=25" \
+      -H "X-Api-Key: your-api-key"
+    ```
+  </Tab>
+  <Tab title="Response">
+    ```json
+    {
+      "pageInfo": {
+        "page": 1,
+        "pages": 2,
+        "results": 38
+      },
+      "results": [
+        {
+          "id": 1,
+          "email": "admin@example.com",
+          "username": "admin",
+          "userType": 1,
+          "permissions": 2,
+          "requestCount": 50,
+          "createdAt": "2024-01-01T00:00:00.000Z",
+          "updatedAt": "2024-03-01T00:00:00.000Z"
+        }
+      ]
+    }
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Create a user
+
+Creates a new local user account. Requires `MANAGE_USERS`.
+
+**`POST /user`**
+
+<ParamField body="email" type="string" required>
+  Email address for the new account.
+</ParamField>
+
+<ParamField body="username" type="string">
+  Display name.
+</ParamField>
+
+<ParamField body="permissions" type="number">
+  Initial permissions bitmask.
+</ParamField>
+
+```bash
+curl -X POST "http://localhost:5055/api/v1/user" \
+  -H "X-Api-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "newuser@example.com",
+    "username": "newuser",
+    "permissions": 32
+  }'
+```
+
+Returns `201 Created` with the new `User` object.
+
+---
+
+## Get a user
+
+Returns a specific user by ID. Requires `MANAGE_USERS`.
+
+**`GET /user/{userId}`**
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/user/3" \
+  -H "X-Api-Key: your-api-key"
+```
+
+---
+
+## Update a user
+
+Updates a user's details. You cannot update a user's Plex token via this endpoint. Requires `MANAGE_USERS`.
+
+**`PUT /user/{userId}`**
+
+```bash
+curl -X PUT "http://localhost:5055/api/v1/user/3" \
+  -H "X-Api-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "newalias",
+    "permissions": 32
+  }'
+```
+
+---
+
+## Delete a user
+
+Removes a user account. Requires `MANAGE_USERS`.
+
+**`DELETE /user/{userId}`**
+
+```bash
+curl -X DELETE "http://localhost:5055/api/v1/user/3" \
+  -H "X-Api-Key: your-api-key"
+```
+
+---
+
+## Update multiple users
+
+Updates permissions for a batch of users. Requires `MANAGE_USERS`.
+
+**`PUT /user`**
+
+<ParamField body="ids" type="integer[]" required>
+  Array of user IDs to update.
+</ParamField>
+
+<ParamField body="permissions" type="integer" required>
+  New permissions bitmask to apply to all specified users.
+</ParamField>
+
+```bash
+curl -X PUT "http://localhost:5055/api/v1/user" \
+  -H "X-Api-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ids": [3, 4, 5],
+    "permissions": 32
+  }'
+```
+
+---
+
+## Import users from Plex
+
+Imports all users (or a subset) from the connected Plex server. Requires `MANAGE_USERS`.
+
+**`POST /user/import-from-plex`**
+
+<ParamField body="plexIds" type="string[]">
+  Optional list of Plex user IDs to import. If omitted, all users are imported.
+</ParamField>
+
+```bash
+curl -X POST "http://localhost:5055/api/v1/user/import-from-plex" \
+  -H "X-Api-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+---
+
+## Import users from Jellyfin
+
+Imports all users (or a subset) from the connected Jellyfin server. Requires `MANAGE_USERS`.
+
+**`POST /user/import-from-jellyfin`**
+
+<ParamField body="jellyfinUserIds" type="string[]">
+  Optional list of Jellyfin user IDs to import. If omitted, all users are imported.
+</ParamField>
+
+```bash
+curl -X POST "http://localhost:5055/api/v1/user/import-from-jellyfin" \
+  -H "X-Api-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+---
+
+## Get a user's requests
+
+Returns all media requests submitted by a specific user.
+
+**`GET /user/{userId}/requests`**
+
+<ParamField query="take" type="number">Number of results to return.</ParamField>
+<ParamField query="skip" type="number">Number of results to skip.</ParamField>
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/user/3/requests?take=20" \
+  -H "X-Api-Key: your-api-key"
+```
+
+---
+
+## Get a user's quota
+
+Returns request quota details. Requires `MANAGE_USERS` to view other users.
+
+**`GET /user/{userId}/quota`**
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/user/3/quota" \
+  -H "X-Api-Key: your-api-key"
+```
+
+```json
+{
+  "movie": {
+    "days": 30,
+    "limit": 10,
+    "used": 3,
+    "remaining": 7,
+    "restricted": false
+  },
+  "tv": {
+    "days": 14,
+    "limit": 5,
+    "used": 1,
+    "remaining": 4,
+    "restricted": false
+  }
+}
+```
+
+---
+
+## User general settings
+
+Get or update a user's general settings. Requires `MANAGE_USERS` to access other users.
+
+**`GET /user/{userId}/settings/main`**
+
+**`POST /user/{userId}/settings/main`**
+
+<Tabs>
+  <Tab title="Get">
+    ```bash
+    curl -X GET "http://localhost:5055/api/v1/user/3/settings/main" \
+      -H "X-Api-Key: your-api-key"
+    ```
+  </Tab>
+  <Tab title="Update">
+    ```bash
+    curl -X POST "http://localhost:5055/api/v1/user/3/settings/main" \
+      -H "X-Api-Key: your-api-key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "username": "alice",
+        "discoverRegion": "US",
+        "originalLanguage": "en",
+        "movieQuotaLimit": 10,
+        "movieQuotaDays": 30
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+**UserSettings fields:**
+
+<ResponseField name="username" type="string">Display name override.</ResponseField>
+<ResponseField name="email" type="string">Email address.</ResponseField>
+<ResponseField name="discordId" type="string">Discord user ID for notifications.</ResponseField>
+<ResponseField name="locale" type="string">UI language code.</ResponseField>
+<ResponseField name="discoverRegion" type="string">Region for discover page filtering.</ResponseField>
+<ResponseField name="streamingRegion" type="string">Region for streaming provider availability.</ResponseField>
+<ResponseField name="originalLanguage" type="string">Filter discover results by original language.</ResponseField>
+<ResponseField name="movieQuotaLimit" type="number">Max movie requests in the quota period.</ResponseField>
+<ResponseField name="movieQuotaDays" type="number">Quota period in days for movies.</ResponseField>
+<ResponseField name="tvQuotaLimit" type="number">Max TV requests in the quota period.</ResponseField>
+<ResponseField name="tvQuotaDays" type="number">Quota period in days for TV.</ResponseField>
+<ResponseField name="watchlistSyncMovies" type="boolean">Enable watchlist sync for movies.</ResponseField>
+<ResponseField name="watchlistSyncTv" type="boolean">Enable watchlist sync for TV.</ResponseField>
+
+---
+
+## User notification settings
+
+Get or update a user's notification preferences. Requires `MANAGE_USERS` to access other users.
+
+**`GET /user/{userId}/settings/notifications`**
+
+**`POST /user/{userId}/settings/notifications`**
+
+```bash
+curl -X POST "http://localhost:5055/api/v1/user/3/settings/notifications" \
+  -H "X-Api-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "emailEnabled": true,
+    "discordEnabled": false,
+    "telegramEnabled": true,
+    "telegramChatId": "123456789"
+  }'
+```
+
+---
+
+## User permission settings
+
+Get or update a user's permissions. Requires `MANAGE_USERS`.
+
+**`GET /user/{userId}/settings/permissions`**
+
+**`POST /user/{userId}/settings/permissions`**
+
+```bash
+curl -X POST "http://localhost:5055/api/v1/user/3/settings/permissions" \
+  -H "X-Api-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"permissions": 32}'
+```
+
+---
+
+## User watch data
+
+Returns play count and recently watched media for a user. Requires `ADMIN` to view other users.
+
+**`GET /user/{userId}/watch_data`**
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/user/3/watch_data" \
+  -H "X-Api-Key: your-api-key"
+```
+
+---
+
+## User watchlist
+
+Returns the Plex watchlist for a specific user.
+
+**`GET /user/{userId}/watchlist`**
+
+<ParamField query="page" type="number" default="1">Page number.</ParamField>
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/user/3/watchlist" \
+  -H "X-Api-Key: your-api-key"
+```

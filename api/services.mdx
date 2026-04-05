@@ -1,0 +1,259 @@
+---
+title: "Services (Radarr & Sonarr)"
+description: "Query connected Radarr and Sonarr instances for quality profiles, root folders, and media lookups."
+---
+
+The `/service` endpoints expose non-sensitive information about connected Radarr and Sonarr instances. These are used to populate request forms with available profiles and storage locations.
+
+<Note>
+  These endpoints return public-facing service details. They do not expose API keys or other credentials. To manage service configuration, use the `/settings/radarr` and `/settings/sonarr` endpoints.
+</Note>
+
+---
+
+## Radarr
+
+### List Radarr instances
+
+Returns all configured Radarr instances.
+
+**`GET /service/radarr`**
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/service/radarr" \
+  -H "X-Api-Key: your-api-key"
+```
+
+```json
+[
+  {
+    "id": 0,
+    "name": "Radarr Main",
+    "hostname": "127.0.0.1",
+    "port": 7878,
+    "useSsl": false,
+    "activeProfileId": 1,
+    "activeProfileName": "720p/1080p",
+    "activeDirectory": "/movies",
+    "is4k": false,
+    "minimumAvailability": "Released",
+    "isDefault": true,
+    "syncEnabled": false,
+    "preventSearch": false
+  }
+]
+```
+
+**RadarrSettings fields:**
+
+<ResponseField name="id" type="number">Radarr instance ID.</ResponseField>
+<ResponseField name="name" type="string">Friendly name for this instance.</ResponseField>
+<ResponseField name="hostname" type="string">Radarr server hostname or IP.</ResponseField>
+<ResponseField name="port" type="number">Radarr server port.</ResponseField>
+<ResponseField name="useSsl" type="boolean">Whether SSL is enabled.</ResponseField>
+<ResponseField name="baseUrl" type="string">Optional base URL path.</ResponseField>
+<ResponseField name="activeProfileId" type="number">Default quality profile ID.</ResponseField>
+<ResponseField name="activeProfileName" type="string">Default quality profile name.</ResponseField>
+<ResponseField name="activeDirectory" type="string">Default root folder path.</ResponseField>
+<ResponseField name="is4k" type="boolean">Whether this is a 4K-dedicated instance.</ResponseField>
+<ResponseField name="minimumAvailability" type="string">Minimum availability setting (e.g. `Released`, `In Cinema`).</ResponseField>
+<ResponseField name="isDefault" type="boolean">Whether this is the default Radarr instance.</ResponseField>
+<ResponseField name="externalUrl" type="string">External URL for accessing Radarr from the browser.</ResponseField>
+<ResponseField name="syncEnabled" type="boolean">Whether library sync is enabled.</ResponseField>
+<ResponseField name="preventSearch" type="boolean">When `true`, prevents automatic search on add.</ResponseField>
+
+---
+
+### Get Radarr instance details
+
+Returns quality profiles and root folders for a specific Radarr instance.
+
+**`GET /service/radarr/{radarrId}`**
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/service/radarr/0" \
+  -H "X-Api-Key: your-api-key"
+```
+
+```json
+{
+  "server": {
+    "id": 0,
+    "name": "Radarr Main",
+    "hostname": "127.0.0.1",
+    "port": 7878,
+    "isDefault": true
+  },
+  "profiles": {
+    "id": 1,
+    "name": "720p/1080p"
+  }
+}
+```
+
+---
+
+## Sonarr
+
+### List Sonarr instances
+
+Returns all configured Sonarr instances.
+
+**`GET /service/sonarr`**
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/service/sonarr" \
+  -H "X-Api-Key: your-api-key"
+```
+
+```json
+[
+  {
+    "id": 0,
+    "name": "Sonarr Main",
+    "hostname": "127.0.0.1",
+    "port": 8989,
+    "useSsl": false,
+    "activeProfileId": 1,
+    "activeProfileName": "720p/1080p",
+    "activeDirectory": "/tv/",
+    "is4k": false,
+    "enableSeasonFolders": true,
+    "isDefault": true
+  }
+]
+```
+
+**SonarrSettings fields:**
+
+<ResponseField name="id" type="number">Sonarr instance ID.</ResponseField>
+<ResponseField name="name" type="string">Friendly name for this instance.</ResponseField>
+<ResponseField name="hostname" type="string">Sonarr server hostname or IP.</ResponseField>
+<ResponseField name="port" type="number">Sonarr server port.</ResponseField>
+<ResponseField name="useSsl" type="boolean">Whether SSL is enabled.</ResponseField>
+<ResponseField name="activeProfileId" type="number">Default quality profile ID.</ResponseField>
+<ResponseField name="activeProfileName" type="string">Default quality profile name.</ResponseField>
+<ResponseField name="activeDirectory" type="string">Default root folder path.</ResponseField>
+<ResponseField name="activeLanguageProfileId" type="number">Default language profile ID.</ResponseField>
+<ResponseField name="activeAnimeProfileId" type="number">Anime quality profile ID.</ResponseField>
+<ResponseField name="activeAnimeDirectory" type="string">Anime root folder path.</ResponseField>
+<ResponseField name="is4k" type="boolean">Whether this is a 4K-dedicated instance.</ResponseField>
+<ResponseField name="enableSeasonFolders" type="boolean">Whether season folders are enabled.</ResponseField>
+<ResponseField name="isDefault" type="boolean">Whether this is the default Sonarr instance.</ResponseField>
+<ResponseField name="externalUrl" type="string">External URL for accessing Sonarr from the browser.</ResponseField>
+<ResponseField name="syncEnabled" type="boolean">Whether library sync is enabled.</ResponseField>
+<ResponseField name="preventSearch" type="boolean">When `true`, prevents automatic search on add.</ResponseField>
+
+---
+
+### Get Sonarr instance details
+
+Returns quality profiles and root folders for a specific Sonarr instance.
+
+**`GET /service/sonarr/{sonarrId}`**
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/service/sonarr/0" \
+  -H "X-Api-Key: your-api-key"
+```
+
+```json
+{
+  "server": {
+    "id": 0,
+    "name": "Sonarr Main",
+    "hostname": "127.0.0.1",
+    "port": 8989,
+    "isDefault": true
+  },
+  "profiles": {
+    "id": 1,
+    "name": "720p/1080p"
+  }
+}
+```
+
+---
+
+### Look up a series in Sonarr
+
+Searches Sonarr for a series by TMDB ID.
+
+**`GET /service/sonarr/lookup/{tmdbId}`**
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/service/sonarr/lookup/76479" \
+  -H "X-Api-Key: your-api-key"
+```
+
+```json
+[
+  {
+    "title": "The Boys",
+    "sortTitle": "boys",
+    "seasonCount": 4,
+    "status": "continuing",
+    "overview": "A group of vigilantes known informally as The Boys...",
+    "network": "Amazon",
+    "tvdbId": 359741,
+    "imdbId": "tt1190634",
+    "year": 2019,
+    "monitored": false,
+    "qualityProfileId": 1
+  }
+]
+```
+
+---
+
+## Managing service configuration
+
+To add, update, or delete service instances, use the Settings endpoints:
+
+| Action | Endpoint |
+|--------|----------|
+| List Radarr instances | `GET /settings/radarr` |
+| Add Radarr instance | `POST /settings/radarr` |
+| Update Radarr instance | `PUT /settings/radarr/{radarrId}` |
+| Delete Radarr instance | `DELETE /settings/radarr/{radarrId}` |
+| Test Radarr connection | `POST /settings/radarr/test` |
+| Get Radarr profiles | `GET /settings/radarr/{radarrId}/profiles` |
+| List Sonarr instances | `GET /settings/sonarr` |
+| Add Sonarr instance | `POST /settings/sonarr` |
+| Update Sonarr instance | `PUT /settings/sonarr/{sonarrId}` |
+| Delete Sonarr instance | `DELETE /settings/sonarr/{sonarrId}` |
+| Test Sonarr connection | `POST /settings/sonarr/test` |
+
+### Test a Radarr connection
+
+**`POST /settings/radarr/test`**
+
+```bash
+curl -X POST "http://localhost:5055/api/v1/settings/radarr/test" \
+  -H "X-Api-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "hostname": "127.0.0.1",
+    "port": 7878,
+    "apiKey": "your-radarr-api-key",
+    "useSsl": false
+  }'
+```
+
+Returns available profiles on success.
+
+### Test a Sonarr connection
+
+**`POST /settings/sonarr/test`**
+
+```bash
+curl -X POST "http://localhost:5055/api/v1/settings/sonarr/test" \
+  -H "X-Api-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "hostname": "127.0.0.1",
+    "port": 8989,
+    "apiKey": "your-sonarr-api-key",
+    "useSsl": false
+  }'
+```

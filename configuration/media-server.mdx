@@ -1,0 +1,172 @@
+---
+title: "Media Server"
+description: "Connect Seerr to your Jellyfin, Plex, or Emby server, sync your libraries, and import users."
+---
+
+Seerr requires a connection to one media server — Jellyfin, Plex, or Emby — to handle authentication and track which content is already available in your library. Configure the connection in **Settings → Media Server**.
+
+<Tabs>
+  <Tab title="Jellyfin">
+    <Info>
+      Sign in to Seerr using a Jellyfin account with **administrator** privileges. The email address you provide is used only for Seerr notifications, password resets, and local sign-in — it is not tied to your Jellyfin account.
+    </Info>
+
+    ## Jellyfin settings
+
+    ### Internal URL
+
+    The internal URL is the address Seerr uses to communicate with your Jellyfin server. It must be reachable from the machine running Seerr.
+
+    In most cases this is the hostname or IP address of the Jellyfin host followed by the port (default: `8096`). For example: `http://192.168.1.10:8096`.
+
+    <Note>
+      When Seerr runs in a Docker container with a bridged network (the default), the container has its own network namespace. You cannot use `localhost` or `127.0.0.1` as the internal URL — these addresses resolve to the Seerr container itself, not the host.
+    </Note>
+
+    <Tip>
+      If Jellyfin also runs in Docker, place both containers on the same custom Docker network. You can then use the Jellyfin container name as the hostname (e.g., `http://jellyfin:8096`).
+    </Tip>
+
+    ### External URL
+
+    The external URL is the address your users use to access Jellyfin directly. Seerr uses this URL to generate **Play on Jellyfin** links and load user avatars.
+
+    In most setups, the external URL differs from the internal URL — especially when Seerr connects to Jellyfin via a container name or local IP that isn't accessible from browsers.
+
+    ### Use SSL
+
+    Enable this to connect to Jellyfin over HTTPS. Self-signed certificates are not trusted by default. See [Self-Signed Certificates](/advanced/self-signed-certificates) for instructions on configuring trust.
+
+    ### Forgot password URL (optional)
+
+    When users click **Forgot Password** on the Seerr login page, they are redirected to this URL. By default, Seerr redirects to your Jellyfin internal URL at `/web/index.html#!/forgotpassword`.
+
+    Set this field if you use a custom password reset page.
+
+    ## Library selection
+
+    After saving your connection settings, select the Jellyfin libraries you want Seerr to monitor. Seerr uses these libraries to determine which content is already available, so users cannot request media you already have.
+
+    If your libraries do not appear, verify your connection settings and click **Sync Libraries**.
+
+    ## Library scanning
+
+    Seerr runs a full library scan automatically once every 24 hours. Recently added content is picked up more frequently.
+
+    If this is your first time setting up Jellyfin, run a **Manual Library Scan** after saving your settings. This ensures Seerr immediately reflects your existing library.
+
+    ## Importing users
+
+    You can import your Jellyfin users to Seerr by clicking **Import Jellyfin Users** on the **User List** page. Seerr fetches the user list from Jellyfin and adds each user automatically.
+
+    Importing users is optional. Any Jellyfin user can sign in to Seerr without being imported first — they receive the [default permissions](/configuration/users#default-permissions) on first login.
+
+    <Tip>
+      To prevent Jellyfin users from signing in automatically, go to **Settings → Users** and disable **Enable New Jellyfin Sign-In**.
+    </Tip>
+  </Tab>
+
+  <Tab title="Emby">
+    <Info>
+      Sign in to Seerr using an Emby account with **administrator** privileges. The email address you provide is used only for Seerr notifications, password resets, and local sign-in — it is not tied to your Emby account.
+    </Info>
+
+    ## Emby settings
+
+    ### Internal URL
+
+    The internal URL is the address Seerr uses to communicate with your Emby server. It must be reachable from the machine running Seerr.
+
+    In most cases this is the hostname or IP address of the Emby host followed by the port (default: `8096`). For example: `http://192.168.1.10:8096`.
+
+    <Note>
+      When Seerr runs in a Docker container with a bridged network (the default), the container has its own network namespace. You cannot use `localhost` or `127.0.0.1` as the internal URL — these addresses resolve to the Seerr container itself, not the host.
+    </Note>
+
+    <Tip>
+      If Emby also runs in Docker, place both containers on the same custom Docker network. You can then use the Emby container name as the hostname (e.g., `http://emby:8096`).
+    </Tip>
+
+    ### External URL
+
+    The external URL is the address your users use to access Emby directly. Seerr uses this URL to generate **Play on Emby** links and load user avatars.
+
+    ### Use SSL
+
+    Enable this to connect to Emby over HTTPS. Self-signed certificates are not trusted by default. See [Self-Signed Certificates](/advanced/self-signed-certificates) for instructions on configuring trust.
+
+    ### Forgot password URL (optional)
+
+    When users click **Forgot Password** on the Seerr login page, they are redirected to this URL. By default, Seerr redirects to your Emby internal URL at `/web/index.html#!/forgotpassword.html`.
+
+    Set this field if you use a custom password reset page.
+
+    ## Library selection
+
+    After saving your connection settings, select the Emby libraries you want Seerr to monitor. Seerr uses these libraries to determine which content is already available, so users cannot request media you already have.
+
+    If your libraries do not appear, verify your connection settings and click **Sync Libraries**.
+
+    ## Library scanning
+
+    Seerr runs a full library scan automatically once every 24 hours. Recently added content is picked up more frequently.
+
+    If this is your first time setting up Emby, run a **Manual Library Scan** after saving your settings. This ensures Seerr immediately reflects your existing library.
+
+    ## Importing users
+
+    You can import your Emby users to Seerr by clicking **Import Emby Users** on the **User List** page.
+
+    Importing users is optional. Any Emby user can sign in to Seerr without being imported first — they receive the [default permissions](/configuration/users#default-permissions) on first login.
+
+    <Tip>
+      To prevent Emby users from signing in automatically, go to **Settings → Users** and disable **Enable New Emby Sign-In**.
+    </Tip>
+  </Tab>
+
+  <Tab title="Plex">
+    ## Plex settings
+
+    <Info>
+      You can either enter your Plex server details manually or select a server retrieved from plex.tv. Click the button next to the **Server** dropdown to fetch your available servers. Depending on your network setup, you may need to enter details manually to establish a connection.
+    </Info>
+
+    ### Hostname or IP address
+
+    Set this to the local IP address of your Plex server if Seerr is on the same network, or to a valid hostname (e.g., `plex.myserver.com`) if it is not.
+
+    ### Port
+
+    The port your Plex server listens on. The default is `32400`. If your server is behind a reverse proxy or hosted on a VPS, you may need to use `443` or another port.
+
+    ### Use SSL
+
+    Enable this to connect to Plex over HTTPS. Self-signed certificates are not trusted by default. See [Self-Signed Certificates](/advanced/self-signed-certificates) for details.
+
+    ### Web App URL (optional)
+
+    **Play on Plex** buttons link to your Plex server's web app. By default, Seerr uses the Plex Web App hosted at plex.tv. If you prefer to use the web app served directly from your Plex server, enter its full URL here (e.g., `https://plex.myserver.com/web`).
+
+    ## Library selection
+
+    After saving your connection settings, select the Plex libraries you want Seerr to monitor. Seerr uses these libraries to determine which content is already available.
+
+    If your libraries do not appear, verify your connection settings and click **Sync Libraries**.
+
+    ## Library scanning
+
+    Seerr runs a full library scan automatically once every 24 hours. Recently added content is picked up more frequently.
+
+    If this is your first time setting up Plex, run a **Manual Library Scan** after saving your settings to immediately reflect your existing library.
+
+    ## Importing users
+
+    Click **Import Plex Users** on the **User List** page. Seerr fetches the list of users with access to your Plex server from plex.tv and adds them automatically.
+
+    Importing users is optional. Any Plex user with access to your server can sign in to Seerr without being imported — they receive the [default permissions](/configuration/users#default-permissions) on first login.
+
+    <Tip>
+      To prevent Plex users from signing in automatically, go to **Settings → Users** and disable **Enable New Plex Sign-In**.
+    </Tip>
+  </Tab>
+</Tabs>

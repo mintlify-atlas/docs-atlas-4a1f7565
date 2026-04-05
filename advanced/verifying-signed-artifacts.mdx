@@ -1,0 +1,341 @@
+---
+title: "Verifying Signed Artifacts"
+description: "Verify the authenticity of official Seerr Docker images and Helm charts using Sigstore Cosign."
+---
+
+Seerr's container images and Helm charts are cryptographically signed using [Sigstore Cosign](https://docs.sigstore.dev/quickstart/quickstart-cosign/). Verifying these signatures confirms that what you are running was built by the official Seerr release pipeline and has not been tampered with.
+
+Each container image also includes a [CycloneDX](https://cyclonedx.org/specification/overview/) Software Bill of Materials (SBOM) attestation, generated with [Trivy](https://aquasecurity.github.io/trivy/), providing full transparency about the dependencies bundled in the image.
+
+## Prerequisites
+
+Install the following tools before proceeding:
+
+- [Cosign](https://docs.sigstore.dev/cosign/system_config/installation/) — required for all verification steps.
+- [Docker](https://docs.docker.com/get-docker/) **or** [Podman](https://podman.io/getting-started/installation) with [Skopeo](https://github.com/containers/skopeo/blob/main/install.md) — required to retrieve image digests.
+
+## Verifying container images
+
+### Image locations
+
+Official Seerr images are published to:
+
+- **GitHub Container Registry (GHCR):** `ghcr.io/seerr-team/seerr:<tag>`
+- **Docker Hub:** `seerr/seerr:<tag>`
+
+View all available tags on the [Seerr Releases page](https://github.com/seerr-team/seerr/releases).
+
+### Verifying a specific release tag
+
+Always verify images using their SHA256 digest rather than a tag, since tags are mutable. Digests are immutable.
+
+<Steps>
+  <Step title="Retrieve the image digest">
+
+    <Tabs>
+      <Tab title="Docker">
+
+```bash
+docker buildx imagetools inspect ghcr.io/seerr-team/seerr:v2.7.4 \
+  --format '{{json .Manifest.Digest}}' | tr -d '"'
+```
+
+      </Tab>
+      <Tab title="Podman / Skopeo">
+
+```bash
+skopeo inspect docker://ghcr.io/seerr-team/seerr:v2.7.4 --format '{{.Digest}}'
+```
+
+      </Tab>
+    </Tabs>
+
+    The output will look like:
+
+    ```
+    sha256:abcd1234...
+    ```
+
+  </Step>
+  <Step title="Verify the image signature">
+
+    Use the digest from the previous step in place of `sha256:abcd1234...`.
+
+    <Tabs>
+      <Tab title="GHCR">
+
+```bash
+cosign verify ghcr.io/seerr-team/seerr@sha256:abcd1234... \
+  --certificate-identity "https://github.com/seerr-team/seerr/.github/workflows/release.yml@refs/tags/v2.7.4" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+```
+
+      </Tab>
+      <Tab title="Docker Hub">
+
+```bash
+cosign verify seerr/seerr@sha256:abcd1234... \
+  --certificate-identity "https://github.com/seerr-team/seerr/.github/workflows/release.yml@refs/tags/v2.7.4" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+```
+
+      </Tab>
+    </Tabs>
+
+    <Info>
+    A successful verification confirms:
+
+    - Cosign claims validated
+    - Signatures verified against the transparency log
+    - Certificate issued by Fulcio to the expected workflow identity
+    </Info>
+
+  </Step>
+</Steps>
+
+### Verifying the `latest` tag
+
+<Warning>
+The `latest` tag is mutable — it changes with every new release. Always retrieve and verify the digest that `latest` currently points to.
+</Warning>
+
+<Steps>
+  <Step title="Retrieve the digest for latest">
+
+    <Tabs>
+      <Tab title="Docker">
+
+```bash
+docker buildx imagetools inspect ghcr.io/seerr-team/seerr:latest \
+  --format '{{json .Manifest.Digest}}' | tr -d '"'
+```
+
+      </Tab>
+      <Tab title="Podman / Skopeo">
+
+```bash
+skopeo inspect docker://ghcr.io/seerr-team/seerr:latest --format '{{.Digest}}'
+```
+
+      </Tab>
+    </Tabs>
+
+  </Step>
+  <Step title="Verify the signature">
+
+    <Tabs>
+      <Tab title="GHCR">
+
+```bash
+cosign verify ghcr.io/seerr-team/seerr@sha256:abcd1234... \
+  --certificate-identity-regexp "https://github.com/seerr-team/seerr/.github/workflows/release.yml@refs/tags/v.*" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+```
+
+      </Tab>
+      <Tab title="Docker Hub">
+
+```bash
+cosign verify seerr/seerr@sha256:abcd1234... \
+  --certificate-identity-regexp "https://github.com/seerr-team/seerr/.github/workflows/release.yml@refs/tags/v.*" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+```
+
+      </Tab>
+    </Tabs>
+
+    <Tip>
+    The wildcard `v.*` in the regexp matches any versioned release that `latest` currently points to.
+    </Tip>
+
+  </Step>
+</Steps>
+
+### Verifying SBOM attestations
+
+Each image includes a CycloneDX SBOM attestation you can verify and extract.
+
+**Verify the attestation:**
+
+```bash
+cosign verify-attestation ghcr.io/seerr-team/seerr@sha256:abcd1234... \
+  --type cyclonedx \
+  --certificate-identity "https://github.com/seerr-team/seerr/.github/workflows/release.yml@refs/tags/v2.7.4" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+```
+
+**Extract the SBOM for inspection:**
+
+```bash
+cosign verify-attestation ghcr.io/seerr-team/seerr@sha256:abcd1234... \
+  --type cyclonedx \
+  --certificate-identity "https://github.com/seerr-team/seerr/.github/workflows/release.yml@refs/tags/v2.7.4" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+  | jq -r '.payload | @base64d' > sbom.json
+```
+
+You can open `sbom.json` in a CycloneDX viewer or analyse it with [Trivy](https://aquasecurity.github.io/trivy/) or [Dependency-Track](https://dependencytrack.org/).
+
+### Full verification flow (example)
+
+<Tabs>
+  <Tab title="Docker">
+
+```bash
+DIGEST=$(docker buildx imagetools inspect ghcr.io/seerr-team/seerr:latest \
+  --format '{{json .Manifest.Digest}}' | tr -d '"')
+
+cosign verify ghcr.io/seerr-team/seerr@"$DIGEST" \
+  --certificate-identity-regexp "https://github.com/seerr-team/seerr/.github/workflows/release.yml@refs/tags/v.*" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+
+cosign verify-attestation ghcr.io/seerr-team/seerr@"$DIGEST" \
+  --type cyclonedx \
+  --certificate-identity-regexp "https://github.com/seerr-team/seerr/.github/workflows/release.yml@refs/tags/v.*" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+```
+
+  </Tab>
+  <Tab title="Podman / Skopeo">
+
+```bash
+DIGEST=$(skopeo inspect docker://ghcr.io/seerr-team/seerr:latest --format '{{.Digest}}')
+
+cosign verify ghcr.io/seerr-team/seerr@"$DIGEST" \
+  --certificate-identity-regexp "https://github.com/seerr-team/seerr/.github/workflows/release.yml@refs/tags/v.*" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+```
+
+  </Tab>
+</Tabs>
+
+### Expected certificate identity
+
+The expected certificate identity for all signed Seerr container images is:
+
+```
+https://github.com/seerr-team/seerr/.github/workflows/release.yml@refs/tags/v*
+```
+
+This confirms the image was:
+
+- Built by the official Seerr release workflow
+- Produced from the `seerr-team/seerr` repository
+- Signed using GitHub's OIDC identity via Sigstore Fulcio
+
+---
+
+## Verifying Helm charts
+
+### Helm chart location
+
+Official Seerr Helm charts are available from GHCR:
+
+```
+ghcr.io/seerr-team/seerr/seerr-chart/seerr-chart:<tag>
+```
+
+View all available tags on the [Seerr packages page](https://github.com/seerr-team/seerr/pkgs/container/seerr%2Fseerr-chart).
+
+### Verifying a specific Helm chart release
+
+<Steps>
+  <Step title="Retrieve the Helm chart digest">
+
+    <Tabs>
+      <Tab title="Docker">
+
+```bash
+docker buildx imagetools inspect ghcr.io/seerr-team/seerr/seerr-chart:3.0.0 \
+  --format '{{json .Manifest.Digest}}' | tr -d '"'
+```
+
+      </Tab>
+      <Tab title="Podman / Skopeo">
+
+```bash
+skopeo inspect docker://ghcr.io/seerr-team/seerr/seerr-chart:3.0.0 --format '{{.Digest}}'
+```
+
+      </Tab>
+    </Tabs>
+
+  </Step>
+  <Step title="Verify the Helm chart signature">
+
+```bash
+cosign verify ghcr.io/seerr-team/seerr/seerr-chart@sha256:abcd1234... \
+  --certificate-identity "https://github.com/seerr-team/seerr/.github/workflows/helm.yml@refs/heads/main" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+```
+
+    <Info>
+    A successful verification confirms:
+
+    - Cosign claims validated
+    - Signatures verified against the transparency log
+    - Certificate issued by Fulcio to the expected workflow identity
+    </Info>
+
+  </Step>
+</Steps>
+
+### Expected certificate identity for Helm charts
+
+```
+https://github.com/seerr-team/seerr/.github/workflows/helm.yml@refs/heads/main
+```
+
+### Full Helm chart verification flow (example)
+
+<Tabs>
+  <Tab title="Docker">
+
+```bash
+DIGEST=$(docker buildx imagetools inspect ghcr.io/seerr-team/seerr/seerr-chart:3.0.0 \
+  --format '{{json .Manifest.Digest}}' | tr -d '"')
+
+cosign verify ghcr.io/seerr-team/seerr/seerr-chart@"$DIGEST" \
+  --certificate-identity-regexp "https://github.com/seerr-team/seerr/.github/workflows/helm.yml@refs/heads/main" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+
+cosign verify-attestation ghcr.io/seerr-team/seerr/seerr-chart@"$DIGEST" \
+  --type cyclonedx \
+  --certificate-identity-regexp "https://github.com/seerr-team/seerr/.github/workflows/helm.yml@refs/heads/main" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+```
+
+  </Tab>
+  <Tab title="Podman / Skopeo">
+
+```bash
+DIGEST=$(skopeo inspect docker://ghcr.io/seerr-team/seerr/seerr-chart:3.0.0 --format '{{.Digest}}')
+
+cosign verify ghcr.io/seerr-team/seerr/seerr-chart@"$DIGEST" \
+  --certificate-identity-regexp "https://github.com/seerr-team/seerr/.github/workflows/helm.yml@refs/heads/main" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+```
+
+  </Tab>
+</Tabs>
+
+---
+
+## Troubleshooting
+
+| Issue | Likely cause | Fix |
+|---|---|---|
+| `no matching signatures` | Incorrect digest or tag | Retrieve the digest again using Docker or Skopeo |
+| `certificate identity does not match expected` | Workflow reference changed | Ensure `--certificate-identity` matches this documentation |
+| `cosign: command not found` | Cosign not installed | Install Cosign from the [official release](https://docs.sigstore.dev/cosign/system_config/installation/) |
+| `certificate expired` | Old release | Verify a newer tag or digest |
+
+---
+
+## Further reading
+
+- [Sigstore documentation](https://docs.sigstore.dev)
+- [Cosign verification guide](https://docs.sigstore.dev/cosign/verifying/verify/)
+- [CycloneDX specification](https://cyclonedx.org/specification/overview/)
+- [Trivy documentation](https://trivy.dev/latest/docs/)
+- [Skopeo documentation](https://github.com/containers/skopeo)

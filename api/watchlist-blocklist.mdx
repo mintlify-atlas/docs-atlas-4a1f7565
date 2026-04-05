@@ -1,0 +1,342 @@
+---
+title: "Watchlist & blocklist"
+description: "Add and remove items from the Seerr watchlist and discovery blocklist."
+---
+
+## Watchlist
+
+The watchlist lets users save media to watch later. Items can sync from Plex automatically when watchlist sync is enabled in user settings.
+
+### Watchlist object
+
+<ResponseField name="id" type="integer">
+  Unique watchlist entry ID.
+</ResponseField>
+
+<ResponseField name="tmdbId" type="number">
+  TMDB ID of the media item.
+</ResponseField>
+
+<ResponseField name="ratingKey" type="string">
+  Plex rating key, if the item originated from a Plex watchlist.
+</ResponseField>
+
+<ResponseField name="type" type="string">
+  Media type: `"movie"` or `"tv"`.
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  Title of the media item.
+</ResponseField>
+
+<ResponseField name="media" type="object">
+  Associated `MediaInfo` object if the item is tracked in Seerr.
+</ResponseField>
+
+<ResponseField name="requestedBy" type="object">
+  The user who added the item.
+</ResponseField>
+
+<ResponseField name="createdAt" type="string">
+  ISO 8601 timestamp of when the item was added.
+</ResponseField>
+
+<ResponseField name="updatedAt" type="string">
+  ISO 8601 timestamp of the last update.
+</ResponseField>
+
+---
+
+### Add to watchlist
+
+Adds a media item to the current user's watchlist.
+
+**`POST /watchlist`**
+
+<ParamField body="tmdbId" type="number" required>
+  TMDB ID of the movie or TV series.
+</ParamField>
+
+<ParamField body="type" type="string" required>
+  `"movie"` or `"tv"`.
+</ParamField>
+
+<ParamField body="title" type="string">
+  Title of the item.
+</ParamField>
+
+<ParamField body="ratingKey" type="string">
+  Plex rating key (only needed for Plex-sourced items).
+</ParamField>
+
+<Tabs>
+  <Tab title="curl">
+    ```bash
+    curl -X POST "http://localhost:5055/api/v1/watchlist" \
+      -H "X-Api-Key: your-api-key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "tmdbId": 438631,
+        "type": "movie",
+        "title": "Dune"
+      }'
+    ```
+  </Tab>
+  <Tab title="Response">
+    ```json
+    {
+      "id": 5,
+      "tmdbId": 438631,
+      "type": "movie",
+      "title": "Dune",
+      "createdAt": "2024-03-01T10:00:00.000Z",
+      "updatedAt": "2024-03-01T10:00:00.000Z"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+### Remove from watchlist
+
+Removes an item from the watchlist by TMDB ID.
+
+**`DELETE /watchlist/{tmdbId}`**
+
+<ParamField path="tmdbId" type="string" required>
+  TMDB ID of the item to remove.
+</ParamField>
+
+<ParamField query="mediaType" type="string" required>
+  `"movie"` or `"tv"`.
+</ParamField>
+
+```bash
+curl -X DELETE "http://localhost:5055/api/v1/watchlist/438631?mediaType=movie" \
+  -H "X-Api-Key: your-api-key"
+```
+
+Returns `204 No Content` on success.
+
+---
+
+### Get a user's watchlist
+
+Returns the watchlist for a specific user (including Plex watchlist items).
+
+**`GET /user/{userId}/watchlist`**
+
+<ParamField path="userId" type="number" required>
+  User ID.
+</ParamField>
+
+<ParamField query="page" type="number" default="1">
+  Page number.
+</ParamField>
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/user/1/watchlist?page=1" \
+  -H "X-Api-Key: your-api-key"
+```
+
+```json
+{
+  "page": 1,
+  "totalPages": 2,
+  "totalResults": 35,
+  "results": [
+    {
+      "tmdbId": 438631,
+      "ratingKey": "123456",
+      "type": "movie",
+      "title": "Dune"
+    }
+  ]
+}
+```
+
+---
+
+## Blocklist
+
+The blocklist prevents media from appearing on the discover page. Items can be added manually or automatically based on tags configured in general settings.
+
+### Blocklist object
+
+<ResponseField name="tmdbId" type="number">
+  TMDB ID of the blocklisted item.
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  Title of the item.
+</ResponseField>
+
+<ResponseField name="media" type="object">
+  Associated `MediaInfo` object if the item is tracked.
+</ResponseField>
+
+<ResponseField name="userId" type="number">
+  ID of the user who added the item to the blocklist.
+</ResponseField>
+
+---
+
+### List blocklisted items
+
+Returns all blocklisted media with optional filtering.
+
+**`GET /blocklist`**
+
+<ParamField query="take" type="number">
+  Number of results to return.
+</ParamField>
+
+<ParamField query="skip" type="number">
+  Number of results to skip.
+</ParamField>
+
+<ParamField query="search" type="string">
+  Filter results by title.
+</ParamField>
+
+<ParamField query="filter" type="string" default="manual">
+  Filter by source: `all`, `manual`, or `blocklistedTags`.
+</ParamField>
+
+<Tabs>
+  <Tab title="curl">
+    ```bash
+    curl -X GET "http://localhost:5055/api/v1/blocklist?filter=all&take=25" \
+      -H "X-Api-Key: your-api-key"
+    ```
+  </Tab>
+  <Tab title="Response">
+    ```json
+    {
+      "pageInfo": {
+        "page": 1,
+        "pages": 2,
+        "results": 30
+      },
+      "results": [
+        {
+          "id": 1,
+          "tmdbId": 438631,
+          "mediaType": "movie",
+          "title": "Dune",
+          "user": {
+            "id": 1,
+            "email": "admin@example.com"
+          },
+          "createdAt": "2024-03-01T10:00:00.000Z"
+        }
+      ]
+    }
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+### Get a specific blocklist item
+
+Returns blocklist details for a specific TMDB ID.
+
+**`GET /blocklist/{tmdbId}`**
+
+<ParamField path="tmdbId" type="string" required>
+  TMDB ID of the item.
+</ParamField>
+
+<ParamField query="mediaType" type="string" required>
+  `"movie"` or `"tv"`.
+</ParamField>
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/blocklist/438631?mediaType=movie" \
+  -H "X-Api-Key: your-api-key"
+```
+
+---
+
+### Add to blocklist
+
+Adds a media item to the blocklist.
+
+**`POST /blocklist`**
+
+<ParamField body="tmdbId" type="number" required>
+  TMDB ID of the item to blocklist.
+</ParamField>
+
+<ParamField body="title" type="string">
+  Title of the item.
+</ParamField>
+
+<ParamField body="userId" type="number">
+  User ID to associate with this blocklist entry.
+</ParamField>
+
+```bash
+curl -X POST "http://localhost:5055/api/v1/blocklist" \
+  -H "X-Api-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tmdbId": 438631,
+    "title": "Dune"
+  }'
+```
+
+Returns `201 Created` on success. Returns `412 Precondition Failed` if the item is already blocklisted.
+
+---
+
+### Remove from blocklist
+
+Removes a media item from the blocklist.
+
+**`DELETE /blocklist/{tmdbId}`**
+
+<ParamField path="tmdbId" type="string" required>
+  TMDB ID of the item to remove.
+</ParamField>
+
+<ParamField query="mediaType" type="string" required>
+  `"movie"` or `"tv"`.
+</ParamField>
+
+```bash
+curl -X DELETE "http://localhost:5055/api/v1/blocklist/438631?mediaType=movie" \
+  -H "X-Api-Key: your-api-key"
+```
+
+Returns `204 No Content` on success.
+
+---
+
+### Blocklist an entire collection
+
+Adds all movies in a TMDB collection to the blocklist.
+
+**`POST /blocklist/collection/{collectionId}`**
+
+```bash
+curl -X POST "http://localhost:5055/api/v1/blocklist/collection/1424991" \
+  -H "X-Api-Key: your-api-key"
+```
+
+### Remove an entire collection from blocklist
+
+**`DELETE /blocklist/collection/{collectionId}`**
+
+```bash
+curl -X DELETE "http://localhost:5055/api/v1/blocklist/collection/1424991" \
+  -H "X-Api-Key: your-api-key"
+```
+
+---
+
+<Note>
+  The legacy `/blacklist` endpoints are deprecated. Use `/blocklist` instead. The `/blacklist` routes will be removed in a future release.
+</Note>

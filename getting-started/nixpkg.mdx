@@ -1,0 +1,71 @@
+---
+title: "NixOS / Nix Package"
+description: "Install Seerr on NixOS using the official Nix package."
+---
+
+<Warning>
+  This method is intended for advanced users running NixOS. For most users, [Docker](/getting-started/docker) is the recommended installation method.
+</Warning>
+
+<Info>
+  The Seerr package and NixOS service module are available in the `nixos-unstable` channel and will be officially included in the **26.05** release. For options reference, see [search.nixos.org](https://search.nixos.org/options?channel=unstable&query=seerr).
+</Info>
+
+## Installation
+
+<Steps>
+  <Step title="Enable the service">
+    Add the following to your `configuration.nix`:
+
+    ```nix configuration.nix
+    { config, pkgs, ... }:
+    {
+      services.seerr.enable = true;
+    }
+    ```
+  </Step>
+  <Step title="Apply the configuration">
+    ```bash
+    nixos-rebuild switch
+    ```
+  </Step>
+  <Step title="Verify the service is running">
+    ```bash
+    systemctl status seerr
+    ```
+  </Step>
+</Steps>
+
+<Info>
+  Once the service is running, Seerr is accessible at `http://localhost:5055`.
+</Info>
+
+## Service configuration
+
+You can configure the Seerr service using NixOS module options. For the full list of available options, see [search.nixos.org](https://search.nixos.org/options?channel=unstable&query=seerr).
+
+A common configuration with a custom port and timezone:
+
+```nix configuration.nix
+{ config, pkgs, ... }:
+{
+  services.seerr = {
+    enable = true;
+  };
+}
+```
+
+## Updating
+
+Seerr updates with your NixOS system when you run:
+
+```bash
+sudo nixos-rebuild switch --upgrade
+```
+
+To update only the Seerr package without upgrading the rest of the system, update your channel and rebuild:
+
+```bash
+sudo nix-channel --update
+sudo nixos-rebuild switch
+```

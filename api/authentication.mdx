@@ -1,0 +1,254 @@
+---
+title: "Authentication"
+description: "Sign in with a local account, Plex, or Jellyfin/Emby, and authenticate API requests with an API key."
+---
+
+Seerr supports two authentication mechanisms: session cookies (for browser-based or interactive use) and API key authentication (for programmatic access and integrations).
+
+## API key authentication
+
+The simplest way to authenticate API requests is to pass your API key in the `X-Api-Key` header:
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/auth/me" \
+  -H "X-Api-Key: your-api-key"
+```
+
+Your API key is available in **Settings → General**. It grants full administrator access, so treat it like a password.
+
+To regenerate your API key, click the button next to the key field in **Settings → General**, or call:
+
+```bash
+curl -X POST "http://localhost:5055/api/v1/settings/main/regenerate" \
+  -H "X-Api-Key: your-api-key"
+```
+
+You can also set a specific API key using the `API_KEY` environment variable on startup.
+
+---
+
+## Session cookie authentication
+
+Signing in via any of the login endpoints creates a `connect.sid` session cookie. Include this cookie in subsequent requests. Most HTTP clients (browsers, `curl` with a cookie jar, libraries like `axios` or `requests`) handle cookies automatically.
+
+### Local sign-in
+
+Sign in with an email address and password for a local Seerr account.
+
+**`POST /auth/local`**
+
+<ParamField body="email" type="string" required>
+  The user's email address.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  The user's password.
+</ParamField>
+
+<Tabs>
+  <Tab title="curl">
+    ```bash
+    curl -X POST "http://localhost:5055/api/v1/auth/local" \
+      -H "Content-Type: application/json" \
+      -c cookies.txt \
+      -d '{"email": "admin@example.com", "password": "yourpassword"}'
+    ```
+  </Tab>
+  <Tab title="Response">
+    ```json
+    {
+      "id": 1,
+      "email": "admin@example.com",
+      "username": "admin",
+      "permissions": 2,
+      "userType": 1,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Plex sign-in
+
+Sign in using a Plex authentication token. If no users exist, the first sign-in creates an admin account. Subsequent Plex users with access to the main Plex server are auto-created without permissions.
+
+**`POST /auth/plex`**
+
+<ParamField body="authToken" type="string" required>
+  A valid Plex auth token (`X-Plex-Token`).
+</ParamField>
+
+<Tabs>
+  <Tab title="curl">
+    ```bash
+    curl -X POST "http://localhost:5055/api/v1/auth/plex" \
+      -H "Content-Type: application/json" \
+      -c cookies.txt \
+      -d '{"authToken": "your-plex-token"}'
+    ```
+  </Tab>
+  <Tab title="Response">
+    ```json
+    {
+      "id": 1,
+      "email": "you@plex.tv",
+      "plexUsername": "plexuser",
+      "permissions": 2,
+      "userType": 1,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Jellyfin / Emby sign-in
+
+Sign in using a Jellyfin or Emby username and password. If no users exist, the first sign-in creates an admin account.
+
+**`POST /auth/jellyfin`**
+
+<ParamField body="username" type="string" required>
+  The Jellyfin/Emby username.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  The Jellyfin/Emby password.
+</ParamField>
+
+<ParamField body="hostname" type="string">
+  The Jellyfin/Emby server hostname. Uses the configured server if omitted.
+</ParamField>
+
+<ParamField body="email" type="string">
+  Email address to associate with the Seerr account.
+</ParamField>
+
+<ParamField body="serverType" type="number">
+  Server type identifier. `1` for Jellyfin, `2` for Emby.
+</ParamField>
+
+<Tabs>
+  <Tab title="curl">
+    ```bash
+    curl -X POST "http://localhost:5055/api/v1/auth/jellyfin" \
+      -H "Content-Type: application/json" \
+      -c cookies.txt \
+      -d '{"username": "admin", "password": "yourpassword"}'
+    ```
+  </Tab>
+  <Tab title="Response">
+    ```json
+    {
+      "id": 1,
+      "email": "admin@example.com",
+      "username": "admin",
+      "permissions": 2,
+      "userType": 2,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Get current user
+
+Returns the currently authenticated user. Useful for verifying that authentication is working.
+
+**`GET /auth/me`**
+
+```bash
+curl -X GET "http://localhost:5055/api/v1/auth/me" \
+  -H "X-Api-Key: your-api-key"
+```
+
+**Response**
+
+<ResponseField name="id" type="integer">
+  The user's numeric ID.
+</ResponseField>
+
+<ResponseField name="email" type="string">
+  The user's email address.
+</ResponseField>
+
+<ResponseField name="username" type="string">
+  The user's display name.
+</ResponseField>
+
+<ResponseField name="plexUsername" type="string">
+  The user's Plex username, if linked.
+</ResponseField>
+
+<ResponseField name="permissions" type="number">
+  Bitmask of the user's permissions.
+</ResponseField>
+
+<ResponseField name="userType" type="integer">
+  User type. `1` = local, `2` = Jellyfin/Emby, `3` = Plex.
+</ResponseField>
+
+<ResponseField name="avatar" type="string">
+  URL of the user's avatar image.
+</ResponseField>
+
+<ResponseField name="requestCount" type="number">
+  Total number of requests made by this user.
+</ResponseField>
+
+---
+
+## Sign out
+
+Clears the session cookie and signs the user out. Has no effect when using API key authentication.
+
+**`POST /auth/logout`**
+
+```bash
+curl -X POST "http://localhost:5055/api/v1/auth/logout" \
+  -H "X-Api-Key: your-api-key"
+```
+
+**Response**
+
+```json
+{
+  "status": "ok"
+}
+```
+
+---
+
+## Password reset
+
+### Request a password reset email
+
+Sends a password reset link to the given email address, if a matching account exists.
+
+**`POST /auth/reset-password`**
+
+```bash
+curl -X POST "http://localhost:5055/api/v1/auth/reset-password" \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com"}'
+```
+
+<Note>
+  Password reset emails require the **Application URL** to be configured in **Settings → General**.
+</Note>
+
+### Complete a password reset
+
+Resets the password using the token from the reset email.
+
+**`POST /auth/reset-password/{guid}`**
+
+```bash
+curl -X POST "http://localhost:5055/api/v1/auth/reset-password/9afef5a7-ec89-4d5f-9397-261e96970b50" \
+  -H "Content-Type: application/json" \
+  -d '{"password": "newpassword"}'
+```

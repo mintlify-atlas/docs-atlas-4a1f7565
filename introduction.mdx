@@ -1,0 +1,69 @@
+---
+title: "Welcome to Seerr"
+description: "Open-source media request and discovery manager for Jellyfin, Plex, and Emby."
+---
+
+Seerr is a free, open-source application that lets your users request movies and TV shows directly from your media server. It connects to Jellyfin, Plex, or Emby for authentication and library management, and routes approved requests automatically to Radarr and Sonarr for downloading.
+
+<CardGroup cols={2}>
+  <Card title="Quick Start with Docker" icon="docker" href="/getting-started/docker">
+    Get Seerr running in minutes using the official Docker image — the recommended installation method.
+  </Card>
+  <Card title="Configure Media Server" icon="server" href="/configuration/media-server">
+    Connect Seerr to your Jellyfin, Plex, or Emby instance and import your users.
+  </Card>
+  <Card title="Set Up Services" icon="gear" href="/configuration/services">
+    Link Radarr and Sonarr so approved requests are sent for download automatically.
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/overview">
+    Integrate Seerr with your own tools using the REST API.
+  </Card>
+</CardGroup>
+
+## How Seerr works
+
+<Steps>
+  <Step title="Install Seerr">
+    Deploy Seerr using Docker, Kubernetes, or from source. Access the web UI at `http://[your-server]:5055` to complete setup.
+  </Step>
+  <Step title="Connect your media server">
+    Sign in with your Jellyfin, Plex, or Emby admin account and import your existing users. Seerr syncs your library so it knows what you already have.
+  </Step>
+  <Step title="Add Radarr and Sonarr">
+    Point Seerr at your Radarr and Sonarr instances. When you approve a request, Seerr forwards it automatically.
+  </Step>
+  <Step title="Start accepting requests">
+    Share Seerr with your users. They can browse, discover, and request media — and you can approve or auto-approve from any device.
+  </Step>
+</Steps>
+
+## Key features
+
+<CardGroup cols={2}>
+  <Card title="Multi-server support" icon="layer-group">
+    Works with Jellyfin, Plex, and Emby. Import users and sync your library from any of these media servers.
+  </Card>
+  <Card title="Granular permissions" icon="shield-halved">
+    Control who can request, auto-approve, or manage the service with a full role and permission system.
+  </Card>
+  <Card title="Rich notifications" icon="bell">
+    Get notified via Discord, Slack, Telegram, Email, Pushover, Pushbullet, Gotify, ntfy, and more.
+  </Card>
+  <Card title="Watchlists & blocklists" icon="list-check">
+    Users can maintain a personal watchlist. Admins can blocklist content from the discovery page.
+  </Card>
+  <Card title="Override rules" icon="sliders">
+    Automatically route requests to specific Radarr/Sonarr instances based on conditions you define.
+  </Card>
+  <Card title="REST API" icon="plug">
+    Automate and integrate Seerr with your existing tools using the documented REST API.
+  </Card>
+</CardGroup>
+
+## Migrating from Overseerr or Jellyseerr?
+
+Seerr automatically migrates your existing data the first time you start it. No manual steps required.
+
+<Card title="Migration guide" icon="arrow-right-arrow-left" href="/guides/migration">
+  Step-by-step instructions for migrating from Overseerr or Jellyseerr to Seerr.
+</Card>

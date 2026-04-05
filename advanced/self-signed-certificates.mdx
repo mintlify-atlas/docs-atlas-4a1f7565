@@ -1,0 +1,62 @@
+---
+title: "Self-Signed Certificates"
+description: "Configure Seerr to trust self-signed SSL certificates from Radarr, Sonarr, or other services."
+---
+
+If your media server or connected services (Radarr, Sonarr, etc.) use self-signed SSL certificates, Seerr will reject the connection by default because Node.js does not trust them. The fix is to mount your CA certificate into the container and point Seerr at it using an environment variable.
+
+## Add your CA certificate
+
+The `NODE_EXTRA_CA_CERTS` environment variable tells Node.js to trust additional Certificate Authority (CA) certificates. This approach keeps certificate validation active while extending trust to your specific certificate.
+
+You need to:
+
+1. Have your CA certificate available in PEM format on the host machine.
+2. Mount it into the Seerr container.
+3. Set `NODE_EXTRA_CA_CERTS` to the container path of the certificate.
+
+<Note>
+The examples below show only the certificate-related configuration. For a complete setup, see the [Getting Started](/getting-started/docker) guide.
+</Note>
+
+<Tabs>
+  <Tab title="Docker CLI">
+
+```bash
+docker run -d \
+  --name seerr \
+  -e NODE_EXTRA_CA_CERTS=/certs/my-ca.pem \
+  -v /path/to/my-ca.pem:/certs/my-ca.pem:ro \
+  -p 5055:5055 \
+  ghcr.io/seerr-team/seerr:latest
+```
+
+  </Tab>
+  <Tab title="Docker Compose">
+
+```yaml
+services:
+  seerr:
+    image: ghcr.io/seerr-team/seerr:latest
+    environment:
+      - NODE_EXTRA_CA_CERTS=/certs/my-ca.pem
+    volumes:
+      - /path/to/my-ca.pem:/certs/my-ca.pem:ro
+    ports:
+      - 5055:5055
+```
+
+  </Tab>
+</Tabs>
+
+Replace `/path/to/my-ca.pem` with the actual path to your CA certificate on the host. The path after the colon (`/certs/my-ca.pem`) is where the file will be available inside the container — this must match the value of `NODE_EXTRA_CA_CERTS`.
+
+<Tip>
+The certificate must be in PEM format. Open it in a text editor — if it starts with `-----BEGIN CERTIFICATE-----`, it is already in PEM format. If it contains binary data, convert it with:
+
+```bash
+openssl x509 -inform DER -in cert.cer -out cert.pem
+```
+</Tip>
+
+For more details, see the [Node.js documentation on adding CA certificates](https://nodejs.org/en/learn/http/enterprise-network-configuration#adding-additional-ca-certificates).

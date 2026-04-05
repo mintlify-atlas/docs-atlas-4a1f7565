@@ -1,0 +1,101 @@
+---
+title: "Radarr & Sonarr"
+description: "Connect Radarr and Sonarr so Seerr can automatically forward approved movie and TV requests for download."
+---
+
+Seerr routes approved requests to Radarr (movies) and Sonarr (TV shows). You can connect multiple instances — for example, to maintain separate libraries for standard and 4K content.
+
+Configure your servers in **Settings → Services**.
+
+<Warning>
+  Only Radarr v3 and v4 and Sonarr v3 and v4 are supported. If you are running an older version, upgrade before adding it to Seerr.
+</Warning>
+
+## How multiple servers work
+
+<Info>
+  If you keep separate non-4K and 4K copies of content in your media library, you need to set up two Radarr servers and two Sonarr servers — one non-4K and one 4K instance of each. Seerr checks all linked servers to determine whether media has already been requested or is available.
+
+  If you only maintain one copy of each title, you only need one Radarr server and one Sonarr server. You can then select different quality profiles on a per-request basis.
+</Info>
+
+## Adding a Radarr server
+
+<Steps>
+  <Step title="Open the Radarr settings">
+    Go to **Settings → Services** and click **Add Radarr Server**.
+  </Step>
+  <Step title="Enter connection details">
+    Fill in the server name, hostname or IP address, port, and API key. Enable **Use SSL** if your server uses HTTPS.
+  </Step>
+  <Step title="Configure defaults">
+    Select a default quality profile, root folder, and minimum availability. These values are required — requests fail if any are missing.
+  </Step>
+  <Step title="Save and test">
+    Click **Save**. Seerr connects to Radarr and validates the configuration.
+  </Step>
+</Steps>
+
+## Adding a Sonarr server
+
+The setup process for Sonarr mirrors Radarr. Go to **Settings → Services**, click **Add Sonarr Server**, and follow the same steps.
+
+---
+
+## Server settings reference
+
+### Server name
+
+A friendly label for identifying this server in the Seerr UI.
+
+### Hostname or IP address
+
+The address Seerr uses to reach your Radarr or Sonarr server. Use a local IP address if Seerr is on the same network, or a hostname (e.g., `radarr.myserver.com`) if it is not.
+
+### Port
+
+The port your server listens on. Radarr defaults to `7878`; Sonarr defaults to `8989`. If your server is behind a reverse proxy, you may need to use `443` or another port.
+
+### Use SSL
+
+Enable to connect over HTTPS. Self-signed certificates are not trusted by default — see [Self-Signed Certificates](/advanced/self-signed-certificates) for configuration details.
+
+### API key
+
+Your Radarr or Sonarr API key. Find it in **Settings → General → Security** inside Radarr or Sonarr. Do not share this key publicly — it grants administrator access to the service.
+
+### URL base
+
+If you have configured a URL base in Radarr or Sonarr (found in **Settings → General → Host**), enter the same value here. Seerr cannot connect without it. A restart of Radarr or Sonarr is required after changing this setting.
+
+### Quality profile
+
+The default quality profile applied to new requests. This setting is required.
+
+### Root folder
+
+The root folder where Radarr or Sonarr places downloaded media. This setting is required.
+
+### Minimum availability (Radarr only)
+
+The minimum release status a movie must reach before Radarr searches for it (e.g., announced, in theaters, released). This setting is required.
+
+### External URL (optional)
+
+If the hostname or IP address above is not accessible from outside your network, set a publicly accessible URL here. Seerr uses this URL to render clickable links on media detail pages.
+
+### Default server
+
+At least one server must be marked as the default for requests to be sent successfully. If you have separate 4K servers, designate a default 4K server in addition to a default non-4K server.
+
+### 4K server
+
+Mark a server as a 4K server only if you maintain separate 4K libraries. If you have a single Radarr or Sonarr instance, leave this unchecked.
+
+### Enable scan (optional)
+
+When enabled, Seerr scans this server to check the request and availability status of existing media. Enabling this is recommended — without it, users can submit requests for content that has already been requested or is already available.
+
+### Enable automatic search (optional)
+
+When enabled, Radarr or Sonarr automatically searches for media as soon as a request is approved.
